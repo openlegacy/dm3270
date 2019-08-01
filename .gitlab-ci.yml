@@ -11,7 +11,8 @@ build:
     - docker
   except:
     - master
-  script: mvn -e -X clean install
+  script: 
+    - mvn -e -X clean install
   artifacts:
     paths:
       - target/dm3270-*.jar
