@@ -2,7 +2,6 @@ image: 836525813842.dkr.ecr.us-east-1.amazonaws.com/jmeter-plugins-build:3.1.1
 
 variables:
   MAVEN_OPTS: -Dmaven.repo.local=.m2/repository
-
 cache:
   paths:
     - .m2/repository/
@@ -12,7 +11,7 @@ build:
     - docker
   except:
     - master
-  script: /execute-on-vnc.sh mvn --batch-mode -e -X clean install
+  script: mvn -e -X clean install
   artifacts:
     paths:
       - target/dm3270-*.jar
@@ -20,14 +19,3 @@ build:
       - target/surefire-reports
     expire_in: 1 month
     when: always
-release:
-  stage: deploy
-  tags:
-    - docker
-  only:
-    - master
-  when: manual
-  script: /release.sh
-  artifacts:
-    paths:
-      - target/dm3270-*.jar

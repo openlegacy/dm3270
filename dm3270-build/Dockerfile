@@ -1,17 +1,5 @@
 FROM maven:3.5
 
-# install tightvnc and execute-on-vnc script to be able to run UI unit tests with assertjswing
-ENV USER="root" \
-  PASSWORD="password"
-
-# we update each time the apt-get to avoid potential issues with cached updates (instead of latest ones) when install is changed https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#apt-get
-# additionally we keep installs separated to keep related things together and properly identifiable with the root cause for the requirement (in a preluding comment)
-RUN apt-get update \
-  && apt-get -y install tightvncserver \
-  && mkdir /root/.vnc \
-  && echo $PASSWORD | vncpasswd -f > /root/.vnc/passwd \
-  && chmod 0600 /root/.vnc/passwd
-
 # install jdk11
 RUN echo 'deb http://ftp.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/backports.list \
   && apt-get update \
