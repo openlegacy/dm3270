@@ -16,7 +16,5 @@ build:
   artifacts:
     paths:
       - target/dm3270-*.jar
-      - target/failsafe-reports
-      - target/surefire-reports
     expire_in: 1 month
     when: always
