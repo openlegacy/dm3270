@@ -146,9 +146,25 @@ public class TerminalClient {
   public void setFieldTextByLabel(String lbl, String text) {
     Field field = findFieldPositionByLabel(lbl);
     if (field == null) {
-      throw new IllegalArgumentException("Invalid field label: " + lbl);
+      setTextWithoutFieldText(lbl, text);
+    } else {
+      setFieldText(field, text);
     }
-    setFieldText(field, text);
+  }
+
+  private void setTextWithoutFieldText(String label, String text) {
+    String screenText = getScreenText();
+    int labelPos = screenText.indexOf(label);
+    int textPos = screenText.indexOf(buildBlankString(text.length()), labelPos);
+    screen.setPositionText(textPos, text);
+  }
+
+  private String buildBlankString(int length) {
+    StringBuilder str = new StringBuilder();
+    for (int i = 0; i < length; i++) {
+      str.append('\u0000');
+    }
+    return str.toString();
   }
 
   private Field findFieldPositionByLabel(String label) {
