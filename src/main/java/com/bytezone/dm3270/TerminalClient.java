@@ -144,30 +144,28 @@ public class TerminalClient {
   }
 
   public void setFieldTextByLabel(String lbl, String text) {
-    Field field = findFieldPositionByLabel(lbl);
+    Field field = findFieldByLabel(lbl);
     if (field == null) {
-      setTextWithoutFieldText(lbl, text);
+      screen.setPositionText(findAvailablePositioningInputByLabel(lbl), text);
     } else {
       setFieldText(field, text);
     }
   }
 
-  private void setTextWithoutFieldText(String label, String text) {
+  private int findAvailablePositioningInputByLabel(String label) {
     String screenText = getScreenText();
     int labelPos = screenText.indexOf(label);
-    int textPos = screenText.indexOf(buildBlankString(text.length()), labelPos);
-    screen.setPositionText(textPos, text);
-  }
-
-  private String buildBlankString(int length) {
-    StringBuilder str = new StringBuilder();
-    for (int i = 0; i < length; i++) {
-      str.append('\u0000');
+    char[] screenTextList = screenText
+        .substring(labelPos + label.length()).toCharArray();
+    for (int i = screenTextList.length - 1; i-- > 0;) {
+      if (screenTextList[i] != '\u0000') {
+        return i + labelPos + 1;
+      }
     }
-    return str.toString();
+    return -1;
   }
 
-  private Field findFieldPositionByLabel(String label) {
+  private Field findFieldByLabel(String label) {
     Field labelField = findLabelField(label);
     return (labelField != null) ? labelField.getNextUnprotectedField() : null;
   }
