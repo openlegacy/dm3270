@@ -142,27 +142,41 @@ public class TerminalClient {
 
     screen.getScreenCursor().moveTo(cursorPosition);
   }
-
+  
   public void setFieldTextByLabel(String lbl, String text) {
-    Field field = findFieldByLabel(lbl);
-    if (field == null) {
-      screen.setPositionText(findAvailablePositioningInputByLabel(lbl), text);
+    if (screen.getFieldManager().getFields().isEmpty()) {
+      String screenText = getScreenText();
+      if (!screenText.contains(lbl)) {
+        throw buildInvalidFieldLabelException(lbl);
+      }
+      // findLastNonBlankPosition() + 2 in order to get the first writable position,
+      // avoiding the first space after labels (which has been considered as 'standard')
+      int fieldPosition = findLastNonBlankPosition() + 2;
+      screen.setPositionText(fieldPosition, text);
+      screen.getScreenCursor().moveTo(fieldPosition + findFieldNextPosition(text));
     } else {
+      Field field = findFieldByLabel(lbl);
+      if (field == null) {
+        throw buildInvalidFieldLabelException(lbl);
+      }
       setFieldText(field, text);
     }
+
   }
 
-  private int findAvailablePositioningInputByLabel(String label) {
+  private IllegalArgumentException buildInvalidFieldLabelException(String lbl) {
+    return new IllegalArgumentException("Invalid label: " + lbl);
+  }
+
+  private int findLastNonBlankPosition() {
     String screenText = getScreenText();
-    int labelPos = screenText.indexOf(label);
-    char[] screenTextList = screenText
-        .substring(labelPos + label.length()).toCharArray();
-    for (int i = screenTextList.length - 1; i-- > 0;) {
-      if (screenTextList[i] != '\u0000') {
-        return i + labelPos + 1;
-      }
+    int lastNonBlankPosition = screenText.length() - 1;
+    while (lastNonBlankPosition >= 0 && (screenText.charAt(lastNonBlankPosition) == '\u0000'
+        || screenText.charAt(lastNonBlankPosition) == '\n')
+        || screenText.charAt(lastNonBlankPosition) == ' ') {
+      lastNonBlankPosition--;
     }
-    return -1;
+    return lastNonBlankPosition;
   }
 
   private Field findFieldByLabel(String label) {
