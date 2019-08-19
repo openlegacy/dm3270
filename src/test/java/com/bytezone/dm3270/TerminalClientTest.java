@@ -440,7 +440,7 @@ public class TerminalClientTest {
         .withField(new FieldBuilder("        ").withNotProtected().withHidden())
         .withField(new FieldBuilder(buildNullString(83)).withNumeric())
         .withField(new FieldBuilder(" Procedure ===>"))
-        .withField(new FieldBuilder("PROC000 ").withNotProtected().withHighIntensity()
+        .withField(new FieldBuilder("PROC394 ").withNotProtected().withHighIntensity()
             .withSelectorPenDetectable())
         .withField(new FieldBuilder(buildNullString(22)).withNumeric())
         .withField(new FieldBuilder(" Group Ident  ===>"))
