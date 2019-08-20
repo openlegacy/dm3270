@@ -7,7 +7,7 @@
                                                                                 
     Password  ===>                                  New Password ===>           
                                                                                 
-    Procedure ===> PROC394                          Group Ident  ===>           
+    Procedure ===> PROC000                          Group Ident  ===>           
                                                                                 
     Acct Nmbr ===> 1000000                                                      
                                                                                 
