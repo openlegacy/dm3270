@@ -29,20 +29,19 @@ public class ScreenPacker {
       boolean readModifiedAll, boolean sscpLuData) {
     // pack the AID
     int ptr = 0;
-    if (!sscpLuData) {
-      buffer[ptr++] = currentAID;               // whatever key was pressed
-    }
 
     // PA keys and the CLR key only return the AID byte
     if (!readModifiedAll) {
       if (currentAID == AIDCommand.AID_PA1 || currentAID == AIDCommand.AID_PA2
           || currentAID == AIDCommand.AID_PA3 || currentAID == AIDCommand.AID_CLEAR) {
+        buffer[ptr++] = currentAID;
         return new AIDCommand(buffer, 0, ptr, charset);
       }
     }
 
     if (!sscpLuData) {
       // pack the cursor address
+      buffer[ptr++] = currentAID;
       BufferAddress ba = new BufferAddress(cursorLocation);
       ptr = ba.packAddress(buffer, ptr);
     }
