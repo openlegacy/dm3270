@@ -1,5 +1,10 @@
 package com.bytezone.dm3270;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
+
 import com.bytezone.dm3270.attributes.StartFieldAttribute;
 import com.bytezone.dm3270.commands.AIDCommand;
 import com.bytezone.dm3270.display.Field;
@@ -8,6 +13,25 @@ import com.bytezone.dm3270.display.ScreenDimensions;
 import com.bytezone.dm3270.display.ScreenPosition;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+import java.awt.Point;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,27 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import us.abstracta.wiresham.Flow;
 import us.abstracta.wiresham.VirtualTcpService;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.awt.*;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TerminalClientTest {
@@ -437,7 +440,7 @@ public class TerminalClientTest {
         .withField(new FieldBuilder("        ").withNotProtected().withHidden())
         .withField(new FieldBuilder(buildNullString(83)).withNumeric())
         .withField(new FieldBuilder(" Procedure ===>"))
-        .withField(new FieldBuilder("PROC394 ").withNotProtected().withHighIntensity()
+        .withField(new FieldBuilder("PROC000 ").withNotProtected().withHighIntensity()
             .withSelectorPenDetectable())
         .withField(new FieldBuilder(buildNullString(22)).withNumeric())
         .withField(new FieldBuilder(" Group Ident  ===>"))
@@ -628,5 +631,25 @@ public class TerminalClientTest {
     awaitKeyboardUnlock();
     assertThat(getScreenText()).isEqualTo(getFileContent("sscplu-login-middle-screen"));
   }
-  
+
+  @Test
+  public void shouldGetLoginSuccessScreenWhenEmptyInputByCord() throws Exception {
+    setupFlowWithEmptyField();
+    awaitKeyboardUnlock();
+    sendFieldByCoord(1, 27, "");
+    awaitKeyboardUnlock();
+    assertThat(getScreenText()).isEqualTo(getFileContent("user-menu-screen.txt"));
+  }
+
+  private void setupFlowWithEmptyField()
+      throws Exception {
+    awaitKeyboardUnlock();
+    teardown();
+    setServiceFlowFromFile("/login-3270-empty-field.yml");
+    service.start();
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS,
+        Charset.CP1147);
+    client.setUsesExtended3270(false);
+    connectClient();
+  }
 }

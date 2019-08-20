@@ -126,6 +126,9 @@ public class TerminalClient {
   }
 
   private int findFieldNextPosition(String text) {
+    if (text.isEmpty()) {
+      return 1;
+    }
     int pos = text.length() - 1;
     while (text.charAt(pos) == '\u0000' || text.charAt(pos) == ' ') {
       pos--;
@@ -142,7 +145,7 @@ public class TerminalClient {
 
     screen.getScreenCursor().moveTo(cursorPosition);
   }
-  
+
   public void setFieldTextByLabel(String lbl, String text) {
     if (screen.getFieldManager().getFields().isEmpty()) {
       String screenText = getScreenText();
