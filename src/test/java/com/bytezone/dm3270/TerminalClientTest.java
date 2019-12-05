@@ -22,6 +22,7 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Formatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -651,5 +652,23 @@ public class TerminalClientTest {
         Charset.CP1147);
     client.setUsesExtended3270(false);
     connectClient();
+  }
+  
+  @Test
+  public void shouldSendTabulatorInput() throws Exception {
+    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, new ScreenDimensions(24, 80), "/sscplu-login.yml");
+    awaitKeyboardUnlock();
+    sendFieldByTab("testapp", 0);
+    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    awaitKeyboardUnlock();
+    sendFieldByTab("testusr", 0);
+    sendFieldByTab("testpsw", 1);
+    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    awaitKeyboardUnlock();
+    assertThat(getScreenText()).isEqualTo(getFileContent("sscplu-login-success-screen.txt"));
+  }
+  
+  public void sendFieldByTab(String text, int offset) {
+    client.setTabulatedInput(text, offset);
   }
 }
