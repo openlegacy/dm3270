@@ -14,6 +14,7 @@ import com.bytezone.dm3270.streams.TelnetState;
 import java.awt.Point;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import javax.net.SocketFactory;
 
@@ -210,6 +211,30 @@ public class TerminalClient {
       }
     }
     return fallbackLabelField;
+  }
+
+  public void setTabulatedInput(String text, int offset) {
+    int row = getCursorPosition().get().y;
+    int column = getCursorPosition().get().x;
+    int linearPosition = (row - 1) * screen.getScreenDimensions().columns + column - 1;
+    if (!getFields().isEmpty()) {
+      Field finalField = screen.getFieldManager()
+          .getFieldAt(linearPosition)
+          .orElseThrow(
+              () -> new IllegalArgumentException(
+                  "There is no field at cursor position " + row + "," + column));
+      for (int i = 0; i < offset; i++) {
+        finalField = finalField.getNextUnprotectedField();
+      }
+      setFieldText(finalField, text);
+    } else {
+      if (offset == 0) {
+        screen.setPositionText(linearPosition, text);
+        screen.getScreenCursor().moveTo(linearPosition + findFieldNextPosition(text));
+      } else {
+        throw new NoSuchElementException("No fields on screen to skip, " + offset + "tab/s");
+      }
+    }
   }
 
   /**
