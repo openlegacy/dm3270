@@ -652,4 +652,22 @@ public class TerminalClientTest {
     client.setUsesExtended3270(false);
     connectClient();
   }
+  
+  @Test
+  public void shouldSendTabulatorInput() throws Exception {
+    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, new ScreenDimensions(24, 80), "/sscplu-login.yml");
+    awaitKeyboardUnlock();
+    sendFieldByTab("testapp", 0);
+    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    awaitKeyboardUnlock();
+    sendFieldByTab("testusr", 0);
+    sendFieldByTab("testpsw", 1);
+    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    awaitKeyboardUnlock();
+    assertThat(getScreenText()).isEqualTo(getFileContent("sscplu-login-success-screen.txt"));
+  }
+  
+  public void sendFieldByTab(String text, int offset) {
+    client.setTabulatedInput(text, offset);
+  }
 }
