@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FieldManager {
 
@@ -14,7 +15,7 @@ public class FieldManager {
   private ScreenWatcher screenWatcher;
   private ScreenDimensions screenDimensions;
 
-  private final List<Field> fields = new ArrayList<>();
+  private final List<Field> fields = new CopyOnWriteArrayList<>();
   private final List<Field> unprotectedFields = new ArrayList<>();
 
   private final Set<ScreenChangeListener> screenChangeListeners = ConcurrentHashMap.newKeySet();
@@ -38,12 +39,16 @@ public class FieldManager {
   // this is called after the pen and screen positions have been modified
   public void buildFields(ScreenPosition[] screenPositions) {
     reset();
-
+    
+    //to avoid inefficiency when coping and adding in a 
+    // CopyOnWriteArrayList we use this list to add all at once;
+    List<Field> auxFields = new ArrayList<>();
     for (List<ScreenPosition> protoField : divide(screenPositions)) {
-      addField(new Field(screen, protoField));
+      auxFields.add(new Field(screen, protoField));
       setContexts(protoField);
     }
-
+    
+    fields.addAll(auxFields);
     // link uprotected fields
     Field previousUnprotectedField = null;
 
