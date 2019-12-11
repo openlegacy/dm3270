@@ -40,7 +40,8 @@ public class FieldManager {
   public void buildFields(ScreenPosition[] screenPositions) {
     reset();
     
-    //to avoid copy the array list for each addition
+    //to avoid inefficiency when coping and adding in a 
+    // CopyOnWriteArrayList we use this list to add all at once;
     List<Field> auxFields = new ArrayList<>();
     for (List<ScreenPosition> protoField : divide(screenPositions)) {
       auxFields.add(new Field(screen, protoField));
