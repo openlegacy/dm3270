@@ -15,7 +15,6 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import java.awt.Point;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
@@ -54,11 +53,14 @@ public class TerminalClientTest {
   private static final Logger LOG = LoggerFactory.getLogger(TerminalClientTest.class);
   private static final int TERMINAL_MODEL_TYPE_TWO = 2;
   private static final int TERMINAL_MODEL_TYPE_THREE = 3;
-  private static final int TERMINAL_MODEL_TYPE_M_FIVE = 5;
-  private static final ScreenDimensions SCREEN_DIMENSIONS_M_FIVE = new ScreenDimensions(27, 132);
   private static final ScreenDimensions SCREEN_DIMENSIONS = new ScreenDimensions(24, 80);
   private static final long TIMEOUT_MILLIS = 10000;
   private static final String SERVICE_HOST = "localhost";
+  private static final String LOGIN_SPECIAL_CHARACTERS_FLOW = "/login-special-characters.yml";
+  private static final String APP_NAME = "testapp";
+  private static final String USERNAME = "testusr";
+  private static final String PASSWORD = "testpsw";
+
   @Rule
   public TestRule watchman = new TestWatcher() {
     @Override
@@ -82,8 +84,7 @@ public class TerminalClientTest {
   @Before
   public void setup() throws IOException {
     service.setSslEnabled(false);
-    setServiceFlowFromFile("/login.yml");
-    service.start();
+    startServiceWithFlow("/login.yml");
     client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS);
     client.setConnectionTimeoutMillis(5000);
     exceptionWaiter = new ExceptionWaiter();
@@ -132,8 +133,9 @@ public class TerminalClientTest {
     return client.getScreenText().replace('\u0000', ' ');
   }
 
-  private void setServiceFlowFromFile(String s) throws FileNotFoundException {
+  private void startServiceWithFlow(String s) throws IOException {
     service.setFlow(Flow.fromYml(new File(getResourceFilePath(s))));
+    service.start();
   }
 
   private String getResourceFilePath(String resourcePath) {
@@ -174,31 +176,28 @@ public class TerminalClientTest {
 
   @Test
   public void shouldGetWelcomeScreenWithWrongCharset() throws Exception {
-    setupExtendedFlow(TERMINAL_MODEL_TYPE_THREE, SCREEN_DIMENSIONS, "/login-special-characters.yml");
+    setupExtendedFlow(TERMINAL_MODEL_TYPE_THREE, SCREEN_DIMENSIONS, LOGIN_SPECIAL_CHARACTERS_FLOW);
 
     awaitKeyboardUnlock();
     assertThat(getScreenText())
-            .isEqualTo( getFileContent("login-special-character-charset-CP1047.txt"));
+        .isEqualTo(getFileContent("login-special-character-charset-CP1047.txt"));
   }
 
   @Test
   public void shouldGetWelcomeScreenWithRightCharset() throws Exception {
-    setupExtendedFlowWithCharsetCP1147(TERMINAL_MODEL_TYPE_THREE, SCREEN_DIMENSIONS, "/login-special-characters.yml");
-    awaitKeyboardUnlock();
-    assertThat(getScreenText())
-            .isEqualTo( getFileContent("login-special-character-charset-CP1147.txt"));
-  }
-
-  private void setupExtendedFlowWithCharsetCP1147(int terminalType, ScreenDimensions screenDimensions,
-                                 String filePath)
-          throws Exception {
-    awaitKeyboardUnlock();
-    teardown();
-    setServiceFlowFromFile(filePath);
-    service.start();
-    client = new TerminalClient(terminalType, screenDimensions,Charset.CP1147);
+    cleanShutdown();
+    startServiceWithFlow(LOGIN_SPECIAL_CHARACTERS_FLOW);
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_THREE, SCREEN_DIMENSIONS, Charset.CP1147);
     client.setUsesExtended3270(true);
     connectClient();
+    awaitKeyboardUnlock();
+    assertThat(getScreenText())
+        .isEqualTo(getFileContent("login-special-character-charset-CP1147.txt"));
+  }
+
+  private void cleanShutdown() throws Exception {
+    awaitKeyboardUnlock();
+    teardown();
   }
 
   @Test
@@ -210,8 +209,7 @@ public class TerminalClientTest {
   }
 
   private void setupSslConnection() throws Exception {
-    awaitKeyboardUnlock();
-    teardown();
+    cleanShutdown();
 
     service.setSslEnabled(true);
     System.setProperty("javax.net.ssl.keyStore", getResourceFilePath("/keystore.jks"));
@@ -245,20 +243,40 @@ public class TerminalClientTest {
   }
 
   @Test
+  public void shouldGetWelcomeScreenWhenConnectWithScreenWithExtendFieldWithoutFieldAttribute()
+      throws Exception {
+    cleanShutdown();
+    startServiceWithFlow("/login-extended-field-without-field-attribute.yml");
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS);
+    connectClient();
+    awaitKeyboardUnlock();
+    assertThat(getScreenText())
+        .isEqualTo(getWelcomeScreen());
+  }
+
+  @Test
   public void shouldGetUserMenuScreenWhenSendUserFieldByCoord() throws Exception {
     awaitKeyboardUnlock();
     sendUserFieldByCoord();
     awaitKeyboardUnlock();
     assertThat(getScreenText())
-        .isEqualTo(getFileContent("user-menu-screen.txt"));
+        .isEqualTo(getUserMenuScreen());
   }
 
   private void sendUserFieldByCoord() {
-    sendFieldByCoord(1, 27, "testusr");
+    sendFieldByCoord(1, 27, USERNAME);
   }
 
   private void sendFieldByCoord(int row, int column, String text) {
     client.setFieldTextByCoord(row, column, text);
+    sendEnter();
+  }
+
+  private String getUserMenuScreen() throws IOException {
+    return getFileContent("user-menu-screen.txt");
+  }
+
+  private void sendEnter() {
     client.sendAID(AIDCommand.AID_ENTER, "ENTER");
   }
 
@@ -267,49 +285,43 @@ public class TerminalClientTest {
     awaitKeyboardUnlock();
     sendUserFieldByCoord();
     awaitKeyboardUnlock();
-    sendFieldByLabel("Password", "testpsw");
+    sendFieldByLabel("Password", PASSWORD);
     awaitSuccessScreen();
   }
 
   private void sendFieldByLabel(String label, String text) {
     client.setFieldTextByLabel(label, text);
-    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    sendEnter();
   }
 
   private void awaitSuccessScreen() throws InterruptedException, TimeoutException {
-    awaitScreenContains("READY");
-  }
-
-  private void awaitScreenContains(String text) throws TimeoutException, InterruptedException {
-    new ScreenTextWaiter(text, client, stableTimeoutExecutor).await(TIMEOUT_MILLIS);
+    new ScreenTextWaiter("READY", client, stableTimeoutExecutor).await(TIMEOUT_MILLIS);
   }
 
   @Test
   public void shouldGetUserMenuScreenWhenSendUserFieldByUnprotectedLabel() throws Exception {
     awaitKeyboardUnlock();
-    sendFieldByLabel("ENTER USERID", "testusr");
+    sendFieldByLabel("ENTER USERID", USERNAME);
     awaitKeyboardUnlock();
     assertThat(getScreenText())
-        .isEqualTo(getFileContent("user-menu-screen.txt"));
+        .isEqualTo(getUserMenuScreen());
   }
 
   @Test
   public void shouldGetWelcomeMessageWhenSendUserInScreenWithoutFields() throws Exception {
     setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS, "/login-without-fields.yml");
     awaitKeyboardUnlock();
-    sendFieldByCoord(20, 48, "testusr");
+    sendFieldByCoord(20, 48, USERNAME);
     awaitKeyboardUnlock();
-    sendFieldByCoord(1, 1, "testusr");
+    sendFieldByCoord(1, 1, USERNAME);
     awaitKeyboardUnlock();
   }
 
   private void setupExtendedFlow(int terminalType, ScreenDimensions screenDimensions,
       String filePath)
       throws Exception {
-    awaitKeyboardUnlock();
-    teardown();
-    setServiceFlowFromFile(filePath);
-    service.start();
+    cleanShutdown();
+    startServiceWithFlow(filePath);
     client = new TerminalClient(terminalType, screenDimensions);
     client.setUsesExtended3270(true);
     connectClient();
@@ -390,16 +402,24 @@ public class TerminalClientTest {
 
   @Test
   public void shouldGetLoginSuccessScreenWhenLoginWithSscpLuData() throws Exception {
-    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS, "/sscplu-login.yml");
+    setupSscpLuLoginFlow();
     awaitKeyboardUnlock();
-    sendFieldByCoord(11, 25, "testapp");
+    sendFieldByCoord(11, 25, APP_NAME);
     awaitKeyboardUnlock();
-    client.setFieldTextByCoord(12, 21, "testusr");
-    client.setFieldTextByCoord(13, 21, "testpsw");
-    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    client.setFieldTextByCoord(12, 21, USERNAME);
+    client.setFieldTextByCoord(13, 21, PASSWORD);
+    sendEnter();
     awaitKeyboardUnlock();
     assertThat(getScreenText())
-        .isEqualTo(getFileContent("sscplu-login-success-screen.txt"));
+        .isEqualTo(getSccpLuLoginSuccessScreen());
+  }
+
+  private void setupSscpLuLoginFlow() throws Exception {
+    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS, "/sscplu-login.yml");
+  }
+
+  private String getSccpLuLoginSuccessScreen() throws IOException {
+    return getFileContent("sscplu-login-success-screen.txt");
   }
 
   @Test
@@ -615,19 +635,19 @@ public class TerminalClientTest {
 
   @Test
   public void shouldShowMenuScreenWithDifferentTerminalType() throws Exception {
-    setupExtendedFlow(TERMINAL_MODEL_TYPE_M_FIVE, SCREEN_DIMENSIONS_M_FIVE,
-        "/login-3270-model-5.yml");
+    int terminalType = 5;
+    setupExtendedFlow(terminalType, new ScreenDimensions(27, 132), "/login-3270-model-5.yml");
     awaitKeyboardUnlock();
     sendUserFieldByCoord();
     awaitKeyboardUnlock();
-    assertThat(getScreenText()).isEqualTo(getFileContent("user-menu-screen.txt"));
+    assertThat(getScreenText()).isEqualTo(getUserMenuScreen());
   }
-  
-  @Test 
+
+  @Test
   public void shouldSetTextWhenNoScreenFieldsWhileInputByLabel() throws Exception {
-    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, new ScreenDimensions(24, 80), "/sscplu-login.yml");
+    setupSscpLuLoginFlow();
     awaitKeyboardUnlock();
-    sendFieldByLabel("APPLICATION NAME", "testapp");
+    sendFieldByLabel("APPLICATION NAME", APP_NAME);
     awaitKeyboardUnlock();
     assertThat(getScreenText()).isEqualTo(getFileContent("sscplu-login-middle-screen"));
   }
@@ -638,35 +658,30 @@ public class TerminalClientTest {
     awaitKeyboardUnlock();
     sendFieldByCoord(1, 27, "");
     awaitKeyboardUnlock();
-    assertThat(getScreenText()).isEqualTo(getFileContent("user-menu-screen.txt"));
+    assertThat(getScreenText()).isEqualTo(getUserMenuScreen());
   }
 
-  private void setupFlowWithEmptyField()
-      throws Exception {
-    awaitKeyboardUnlock();
-    teardown();
-    setServiceFlowFromFile("/login-3270-empty-field.yml");
-    service.start();
-    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS,
-        Charset.CP1147);
-    client.setUsesExtended3270(false);
+  private void setupFlowWithEmptyField() throws Exception {
+    cleanShutdown();
+    startServiceWithFlow("/login-3270-empty-field.yml");
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS, Charset.CP1147);
     connectClient();
   }
-  
+
   @Test
   public void shouldSendTabulatorInput() throws Exception {
-    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, new ScreenDimensions(24, 80), "/sscplu-login.yml");
+    setupSscpLuLoginFlow();
     awaitKeyboardUnlock();
-    sendFieldByTab("testapp", 0);
-    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    sendFieldByTab(APP_NAME, 0);
+    sendEnter();
     awaitKeyboardUnlock();
-    sendFieldByTab("testusr", 0);
-    sendFieldByTab("testpsw", 1);
-    client.sendAID(AIDCommand.AID_ENTER, "ENTER");
+    sendFieldByTab(USERNAME, 0);
+    sendFieldByTab(PASSWORD, 1);
+    sendEnter();
     awaitKeyboardUnlock();
-    assertThat(getScreenText()).isEqualTo(getFileContent("sscplu-login-success-screen.txt"));
+    assertThat(getScreenText()).isEqualTo(getSccpLuLoginSuccessScreen());
   }
-  
+
   public void sendFieldByTab(String text, int offset) {
     client.setTabulatedInput(text, offset);
   }

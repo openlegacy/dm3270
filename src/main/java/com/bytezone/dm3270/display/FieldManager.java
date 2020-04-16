@@ -39,7 +39,7 @@ public class FieldManager {
   // this is called after the pen and screen positions have been modified
   public void buildFields(ScreenPosition[] screenPositions) {
     reset();
-    
+
     //to avoid inefficiency when coping and adding in a 
     // CopyOnWriteArrayList we use this list to add all at once;
     List<Field> auxFields = new ArrayList<>();

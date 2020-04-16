@@ -1,0 +1,29 @@
+# Do TN3270E
+- !server {data: FFFD28, delayMillis: 342}
+# Won't TN3270E
+- !client {data: FFFC28}
+# Do Terminal Type
+- !server {data: FFFD18, delayMillis: 196}
+# Will Terminal Type
+- !client {data: FFFB18}
+# Send your Terminal Type
+- !server {data: FFFA1801FFF0, delayMillis: 196}
+# terminal-type: IBM-3278-2-E
+- !client {data: FFFA180049424D2D333237382D322D45FFF0}
+# Do End of Record
+- !server {data: FFFD19, delayMillis: 197}
+# Will End of Record
+- !server {data: FFFB19}
+# Will End of Record
+- !client {data: FFFB19}
+# Do Binary Transmission + Will Binary Transmission
+- !server {data: FFFD00FFFB00, delayMillis: 198}
+# Do End of Record
+- !client {data: FFFD19}
+# Will Binary Transmission + Do Binary Transmission
+- !client {data: FFFB00FFFD00}
+# restore keyboard + user input screen + cursor=2,1
+- !server {data: 05C1115D7F1D401140401DC8C1C1C1C1C1C1C1C1C140C5D5E3C5D940E4E2C5D9C9C44060290142F71D4011C15013FFEF,
+  delayMillis: 877}
+- !server {data: 01C2FFEF}
+- !client {data: FFFF}
