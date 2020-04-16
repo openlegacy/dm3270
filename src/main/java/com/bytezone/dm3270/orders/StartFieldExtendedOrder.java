@@ -41,15 +41,18 @@ public class StartFieldExtendedOrder extends Order {
       this.buffer[bptr++] = buffer[ptr++];
     }
 
-    assert startFieldAttribute != null;
-    startFieldAttribute.setExtended();
+    if (startFieldAttribute != null) {
+      startFieldAttribute.setExtended();
+    }
   }
 
   @Override
   public void process(DisplayScreen screen) {
     Pen pen = screen.getPen();
     location = pen.getPosition();
-    pen.startField(startFieldAttribute);
+    if (startFieldAttribute != null) {
+      pen.startField(startFieldAttribute);
+    }
 
     for (Attribute attribute : attributes) {
       pen.addAttribute(attribute);
@@ -62,7 +65,9 @@ public class StartFieldExtendedOrder extends Order {
   public String toString() {
     StringBuilder text = new StringBuilder();
     String locationText = location >= 0 ? String.format("(%04d)", location) : "";
-    text.append(String.format("SFE : %s %s", startFieldAttribute, locationText));
+    if (startFieldAttribute != null) {
+      text.append(String.format("SFE : %s %s", startFieldAttribute, locationText));
+    }
 
     for (Attribute attr : attributes) {
       text.append(String.format("\n      %-34s", attr));
