@@ -7,7 +7,7 @@
   <artifactId>dm3270-lib</artifactId>
   <!-- This version has no relation to the released version since the release version is extracted
   from git tag by Travis -->
-  <version>0.12.3-SNAPSHOT</version>
+  <version>0.12.4-SNAPSHOT</version>
 
   <name>${project.artifactId}</name>
   <description>This is a trimmed down version of https://github.com/dmolony/dm3270 to be used as

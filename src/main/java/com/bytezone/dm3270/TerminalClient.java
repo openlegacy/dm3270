@@ -115,8 +115,7 @@ public class TerminalClient {
   public void setFieldTextByCoord(int row, int column, String text) {
     int linearPosition = (row - 1) * screen.getScreenDimensions().columns + column - 1;
     if (screen.getFieldManager().getFields().isEmpty()) {
-      screen.setPositionText(linearPosition, text);
-      screen.getScreenCursor().moveTo(linearPosition + findFieldNextPosition(text));
+      setPositionText(text, linearPosition);
     } else {
       Field field = screen.getFieldManager()
           .getFieldAt(linearPosition)
@@ -124,6 +123,11 @@ public class TerminalClient {
               () -> new IllegalArgumentException("Invalid field position " + row + "," + column));
       setFieldText(field, text);
     }
+  }
+
+  private void setPositionText(String text, int fieldPosition) {
+    screen.setPositionText(fieldPosition, text);
+    setCursorPosition(fieldPosition + findFieldNextPosition(text));
   }
 
   private int findFieldNextPosition(String text) {
@@ -144,7 +148,7 @@ public class TerminalClient {
         field.getDisplayLength() > nextPosition ? field.getFirstLocation() + nextPosition
             : field.getNextUnprotectedField().getFirstLocation();
 
-    screen.getScreenCursor().moveTo(cursorPosition);
+    setCursorPosition(cursorPosition);
   }
 
   public void setFieldTextByLabel(String lbl, String text) {
@@ -156,8 +160,7 @@ public class TerminalClient {
       // findLastNonBlankPosition() + 2 in order to get the first writable position,
       // avoiding the first space after labels (which has been considered as 'standard')
       int fieldPosition = findLastNonBlankPosition() + 2;
-      screen.setPositionText(fieldPosition, text);
-      screen.getScreenCursor().moveTo(fieldPosition + findFieldNextPosition(text));
+      setPositionText(text, fieldPosition);
     } else {
       Field field = findFieldByLabel(lbl);
       if (field == null) {
@@ -213,28 +216,47 @@ public class TerminalClient {
     return fallbackLabelField;
   }
 
-  public void setTabulatedInput(String text, int offset) {
+  public void setTabulatedInput(String text, int offset) throws NoSuchFieldException {
     int row = getCursorPosition().get().y;
     int column = getCursorPosition().get().x;
     int linearPosition = (row - 1) * screen.getScreenDimensions().columns + column - 1;
     if (!getFields().isEmpty()) {
       Field finalField = screen.getFieldManager()
           .getFieldAt(linearPosition)
-          .orElseThrow(
-              () -> new IllegalArgumentException(
-                  "There is no field at cursor position " + row + "," + column));
+          .orElse(null);
+      if (finalField == null && offset <= 0) {
+        throw new NoSuchElementException("No field found at position (" + row + "," + column + ")");
+      }
+      if (finalField == null) {
+        // this is considered as a tabulator therefore offset offset is reduced 
+        finalField = getNextFieldFromPos(linearPosition);
+        offset--;
+      }
       for (int i = 0; i < offset; i++) {
         finalField = finalField.getNextUnprotectedField();
       }
       setFieldText(finalField, text);
     } else {
       if (offset == 0) {
-        screen.setPositionText(linearPosition, text);
-        screen.getScreenCursor().moveTo(linearPosition + findFieldNextPosition(text));
+        setPositionText(text, linearPosition);
       } else {
         throw new NoSuchElementException("No fields on screen to skip, " + offset + "tab/s");
       }
     }
+  }
+
+  private Field getNextFieldFromPos(int linealPosition) throws NoSuchFieldException {
+    Field ret;
+    int maxLinealPos = getScreenDimensions().size;
+    for (int i = linealPosition; i <= maxLinealPos; i++) {
+      int index = linealPosition + i <= maxLinealPos ? linealPosition + i
+          : Math.abs((maxLinealPos - linealPosition) - i) - 1;
+      ret = screen.getFieldManager().getFieldAt(index).orElse(null);
+      if (ret != null) {
+        return ret.isUnprotected() ? ret : ret.getNextUnprotectedField();
+      }
+    }
+    throw new NoSuchFieldException("Screen is not constituted by fields");
   }
 
   /**
@@ -373,6 +395,10 @@ public class TerminalClient {
     return cursor.isVisible()
         ? Optional.of(new Point(location % columns + 1, location / columns + 1))
         : Optional.empty();
+  }
+
+  public void setCursorPosition(int linearPosition) {
+    screen.getScreenCursor().moveTo(linearPosition);
   }
 
   /**

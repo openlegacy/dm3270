@@ -682,7 +682,20 @@ public class TerminalClientTest {
     assertThat(getScreenText()).isEqualTo(getSccpLuLoginSuccessScreen());
   }
 
-  public void sendFieldByTab(String text, int offset) {
+  public void sendFieldByTab(String text, int offset) throws NoSuchFieldException {
     client.setTabulatedInput(text, offset);
+  }
+
+  @Test
+  public void shouldSetTabulatorInputWhenCursorPosLacksFieldAndOffsetBiggerThanZero()
+      throws Exception {
+    awaitKeyboardUnlock();
+    sendFieldByCoord(1, 27, "testusr");
+    sendEnter();
+    awaitKeyboardUnlock();
+    client.setCursorPosition(50);
+    sendFieldByTab("testpsw", 1);
+    sendEnter();
+    awaitKeyboardUnlock();
   }
 }
