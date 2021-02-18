@@ -9,6 +9,7 @@ import com.bytezone.dm3270.attributes.StartFieldAttribute;
 import com.bytezone.dm3270.commands.AIDCommand;
 import com.bytezone.dm3270.display.Field;
 import com.bytezone.dm3270.display.Screen;
+import com.bytezone.dm3270.display.ScreenContext;
 import com.bytezone.dm3270.display.ScreenDimensions;
 import com.bytezone.dm3270.display.ScreenPosition;
 import com.google.common.base.Charsets;
@@ -73,10 +74,10 @@ public class TerminalClientTest {
       LOG.debug("Finished {}", description.getMethodName());
     }
   };
-  private VirtualTcpService service = new VirtualTcpService();
+  private final VirtualTcpService service = new VirtualTcpService();
   private TerminalClient client;
   private ExceptionWaiter exceptionWaiter;
-  private ScheduledExecutorService stableTimeoutExecutor = Executors
+  private final ScheduledExecutorService stableTimeoutExecutor = Executors
       .newSingleThreadScheduledExecutor();
   @Mock
   private Screen screenMock;
@@ -94,9 +95,9 @@ public class TerminalClientTest {
 
   private static class ExceptionWaiter implements ConnectionListener {
 
-    private CountDownLatch exceptionLatch = new CountDownLatch(1);
+    private final CountDownLatch exceptionLatch = new CountDownLatch(1);
 
-    private CountDownLatch closeLatch = new CountDownLatch(1);
+    private final CountDownLatch closeLatch = new CountDownLatch(1);
 
     @Override
     public void onConnection() {
@@ -546,7 +547,7 @@ public class TerminalClientTest {
 
     private int startPosition;
 
-    private String text;
+    private final String text;
     private boolean isProtected = true;
     private boolean isNumeric = false;
     private boolean isHidden = false;
@@ -598,7 +599,8 @@ public class TerminalClientTest {
       try {
         List<ScreenPosition> positions = new ArrayList<>();
         for (int i = 0; i <= text.length(); i++) {
-          positions.add(new ScreenPosition(startPosition + i, null, Charset.CP1047));
+          positions.add(
+              new ScreenPosition(startPosition + i, ScreenContext.DEFAULT_CONTEXT, Charset.CP1047));
         }
         positions.get(0).setStartField(buildStartFieldAttribute());
         Field f = new Field(TerminalClientTest.this.screenMock, positions);
@@ -640,7 +642,8 @@ public class TerminalClientTest {
     awaitKeyboardUnlock();
     sendUserFieldByCoord();
     awaitKeyboardUnlock();
-    assertThat(getScreenText()).isEqualTo(getUserMenuScreen());
+    assertThat(getScreenText())
+        .isEqualTo(getFileContent("user-menu-for-screen-type-5.txt"));
   }
 
   @Test
@@ -697,5 +700,28 @@ public class TerminalClientTest {
     sendFieldByTab("testpsw", 1);
     sendEnter();
     awaitKeyboardUnlock();
+  }
+
+  @Test
+  public void shouldGetSuccessScreenWhenUsingMultipleInputByLabel() throws Exception {
+    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO,SCREEN_DIMENSIONS,
+        "/login-3278-M2-E.yml");
+    awaitKeyboardUnlock();
+    client.setFieldTextByLabel("Userid:", "testusr ");
+    client.setFieldTextByLabel("Passcode:", "testpsw                                           ");
+    sendEnter();
+    awaitKeyboardUnlock();
+    assertThat(getFileContent("login-3278-M2-E-final-screen.txt")).isEqualTo(getScreenText());
+  }
+
+  @Test
+  public void shouldSuccessfullyLoginWhenAplScreen() throws Exception {
+    setupExtendedFlow(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS, "/login-apl-charset-screen.yml");
+    awaitKeyboardUnlock();
+    sendFieldByTab("TESTUSR", 0);
+    sendFieldByTab("TESTPSW", 1);
+    sendEnter();
+    awaitKeyboardUnlock();
+    assertThat(getScreenText()).isEqualTo(getFileContent("success-apl-screen.txt"));
   }
 }

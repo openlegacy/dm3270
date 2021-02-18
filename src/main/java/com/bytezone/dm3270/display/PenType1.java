@@ -71,7 +71,7 @@ class PenType1 implements Pen {
   public void writeGraphics(byte b) {
     ScreenPosition screenPosition = screenPositions[currentPosition];
     screenPosition.reset();
-    screenPosition.setGraphicsChar(b);
+    screenPosition.setAplGraphicChar(b);
     moveRight();
   }
 

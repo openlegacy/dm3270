@@ -26,7 +26,7 @@ public abstract class Attribute {
   private final byte attributeCode;
 
   public enum AttributeType {
-    START_FIELD, HIGHLIGHT, FOREGROUND_COLOR, BACKGROUND_COLOR, RESET
+    START_FIELD, HIGHLIGHT, FOREGROUND_COLOR, BACKGROUND_COLOR, RESET, CHARSET
   }
 
   public Attribute(AttributeType attributeType, byte attributeCode, byte attributeValue) {
@@ -73,8 +73,7 @@ public abstract class Attribute {
       case XA_FGCOLOR:
         return Optional.of(new ForegroundColor(attributeValue));
       case XA_CHARSET:
-        LOG.warn("Charset not written");
-        return Optional.empty();
+        return Optional.of(new Charset(attributeValue));
       case XA_VALIDATION:
         LOG.warn("Validation not written");
         return Optional.empty();

@@ -86,7 +86,7 @@ public class StartFieldAttribute extends Attribute {
 
     Color color = isHighIntensity ? isProtected ? WHITE : RED : isProtected ? BLUE : GREEN;
 
-    return new ScreenContext(color, BLACK, (byte) 0, isHighIntensity);
+    return new ScreenContext(color, BLACK, (byte) 0, isHighIntensity, false);
   }
 
   private String getColorName() {
