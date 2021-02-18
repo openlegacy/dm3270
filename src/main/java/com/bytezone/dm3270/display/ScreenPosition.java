@@ -8,21 +8,12 @@ import java.util.List;
 
 public final class ScreenPosition {
 
-  // GraphicsEscape characters
-  private static final byte TOP_LEFT = (byte) 0xC5;
-  private static final byte TOP_RIGHT = (byte) 0xD5;
-  private static final byte BOTTOM_LEFT = (byte) 0xC4;
-  private static final byte BOTTOM_RIGHT = (byte) 0xD4;
-  private static final byte HORIZONTAL_LINE = (byte) 0xA2;
-  private static final byte VERTICAL_LINE = (byte) 0x85;
-
   private final int position;
 
   private StartFieldAttribute startFieldAttribute;
   private final List<Attribute> attributes = new ArrayList<>();
 
   private byte value;
-  private boolean isGraphics;
   private ScreenContext screenContext;
   private final Charset charset;
 
@@ -36,19 +27,19 @@ public final class ScreenPosition {
 
   public void reset() {
     value = 0;
-    isGraphics = false;
+    screenContext.withGraphic(false);
     startFieldAttribute = null;
     attributes.clear();
   }
 
   public void setChar(byte value) {
     this.value = value;
-    isGraphics = false;
+    screenContext.withGraphic(false);
   }
 
-  public void setGraphicsChar(byte value) {
+  public void setAplGraphicChar(byte value) {
     this.value = value;
-    isGraphics = true;
+    screenContext.withGraphic(false);
   }
 
   public StartFieldAttribute getStartFieldAttribute() {
@@ -92,8 +83,8 @@ public final class ScreenPosition {
     return startFieldAttribute != null;
   }
 
-  public boolean isGraphicsChar() {
-    return isGraphics;
+  public boolean isGraphic() {
+    return screenContext.isGraphic();
   }
 
   public char getChar() {
@@ -104,18 +95,40 @@ public final class ScreenPosition {
       return ' ';
     }
 
-    if (isGraphics) {
-      switch (value) {
-        case HORIZONTAL_LINE:
-          return '-';
-        case VERTICAL_LINE:
-          return '|';
-        default:
-          return '*';
-      }
+    if (screenContext.isGraphic()) {
+      return convertGraphicChar(value);
     }
 
     return charset.getChar(value);
+  }
+
+  private static char convertGraphicChar(byte val) {
+    switch (val) {
+      case (byte) 0x85:
+        return '│';
+      case (byte) 0xA2:
+        return '─';
+      case (byte) 0xC4:
+        return '└';
+      case (byte) 0xC5:
+        return '┌';
+      case (byte) 0xC6:
+        return '├';
+      case (byte) 0xC7:
+        return '┴';
+      case (byte) 0xD3:
+        return '┼';
+      case (byte) 0xD4:
+        return '┘';
+      case (byte) 0xD5:
+        return '┐';
+      case (byte) 0xD6:
+        return '┤';
+      case (byte) 0xD7:
+        return '┬';
+      default:
+        return ' ';
+    }
   }
 
   public String getCharString() {
@@ -123,20 +136,8 @@ public final class ScreenPosition {
       return " ";
     }
 
-    if (isGraphics) {
-      switch (value) {
-        case HORIZONTAL_LINE:
-          return "-";
-        case VERTICAL_LINE:
-          return "|";
-        case TOP_LEFT:
-        case TOP_RIGHT:
-        case BOTTOM_LEFT:
-        case BOTTOM_RIGHT:
-          return "*";
-        default:
-          return ".";
-      }
+    if (screenContext.isGraphic()) {
+      return String.valueOf(convertGraphicChar(value));
     }
 
     char ret = charset.getChar(value);

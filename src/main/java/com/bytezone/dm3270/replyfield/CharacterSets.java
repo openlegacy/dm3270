@@ -6,23 +6,40 @@ import java.util.List;
 
 public class CharacterSets extends QueryReplyField {
 
+  private static final int GRAPHIC_ESCAPE_SUPPORT_FLAG = 0x80;
+  private static final int CGCSGID_PRESENT_FLAG = 0x02;
+  private static final int DEFAULT_CHARACTER_SLOT_WIDTH = 7;
+  private static final int DEFAULT_CHARACTER_SLOT_HEIGHT = 12;
+  private static final int[] FORM_TYPES = {0x00, 0x00, 0x00, 0x00};
+  private static final int DESCRIPTOR_LENGTH = 7;
+  private static final byte[][] CHARSETS = new byte[][]{
+      {0x00, 0x00, 0x00, 0x02, (byte) 0xB9, 0x04, 0x17},
+      {0x01, 0x00, (byte) 0xF1, 0x03, (byte) 0xC3, 0x01, 0x36}
+  };
+
   private byte flags1;
   private byte flags2;
   private int defaultSlotWidth;
   private int defaultSlotHeight;
   private int loadTypes;
   private int descriptorLength;
-  private List<Descriptor> descriptors = new ArrayList<>();
+  private final List<Descriptor> descriptors = new ArrayList<>();
 
   public CharacterSets() {
     super(CHARACTER_SETS_REPLY);
 
-    int[] rest = {0x82, 0x00, 0x07, 0x0C, 0x00, 0x00, 0x00, 0x00, //
-        0x07, 0x00, 0x00, 0x00, 0x02, 0xB9, 0x04, 0x17,  //
-        0x01, 0x00, 0xF1, 0x03, 0xC3, 0x01, 0x36};
-    int ptr = createReply(rest.length);
-    for (int b : rest) {
-      reply[ptr++] = (byte) b;
+    int ptr = createReply(4 + FORM_TYPES.length + 1 + CHARSETS.length * DESCRIPTOR_LENGTH);
+    reply[ptr++] = (byte) (GRAPHIC_ESCAPE_SUPPORT_FLAG | CGCSGID_PRESENT_FLAG & 0xff);
+    reply[ptr++] = 0x00;
+    reply[ptr++] = DEFAULT_CHARACTER_SLOT_WIDTH;
+    reply[ptr++] = DEFAULT_CHARACTER_SLOT_HEIGHT;
+    for (int formType : FORM_TYPES) {
+      reply[ptr++] = (byte) formType;
+    }
+    reply[ptr++] = DESCRIPTOR_LENGTH;
+    for (byte[] charset : CHARSETS) {
+      System.arraycopy(charset, 0, reply, ptr, DESCRIPTOR_LENGTH);
+      ptr += DESCRIPTOR_LENGTH;
     }
 
     checkDataLength(ptr);
@@ -66,15 +83,15 @@ public class CharacterSets extends QueryReplyField {
     return text.toString();
   }
 
-  public class Descriptor {
+  public static class Descriptor {
 
-    private int set;
-    private byte flags;
-    private int localCharsetID;
-    private int slotWidth;
-    private int slotHeight;
-    private int startSubsection;
-    private int endSubsection;
+    private final int set;
+    private final byte flags;
+    private final int localCharsetID;
+    private final int slotWidth;
+    private final int slotHeight;
+    private final int startSubsection;
+    private final int endSubsection;
     private int cgcsID;
 
     private Descriptor(byte[] buffer, int offset, int length) {

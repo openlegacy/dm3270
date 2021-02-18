@@ -192,7 +192,7 @@ public class TerminalClient {
   }
 
   private Field findLabelField(String label) {
-    String screenText = getScreenText();
+    String screenText = getScreenText().replace("\n", "");
     int pos = 0;
     Field fallbackLabelField = null;
     while (pos != -1) {

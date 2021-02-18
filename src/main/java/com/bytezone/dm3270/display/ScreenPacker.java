@@ -147,7 +147,7 @@ public class ScreenPacker {
       }
     }
 
-    if (sp.isGraphicsChar() && replyMode != SetReplyModeSF.RM_FIELD) {
+    if (sp.isGraphic() && replyMode != SetReplyModeSF.RM_FIELD) {
       buffer[ptr++] = Order.GRAPHICS_ESCAPE;
     }
 

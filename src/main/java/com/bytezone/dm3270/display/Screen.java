@@ -62,8 +62,10 @@ public class Screen implements DisplayScreen {
     this.alternateScreenDimensions = alternateScreenDimensions;
     this.telnetState = telnetState;
     this.charset = charset;
+    ScreenOption currentOption = alternateScreenDimensions == null ? ScreenOption.DEFAULT
+        : ScreenOption.ALTERNATE;
 
-    ScreenDimensions screenDimensions = alternateScreenDimensions == null
+    ScreenDimensions screenDimensions = currentOption.equals(ScreenOption.DEFAULT)
         ? defaultScreenDimensions : alternateScreenDimensions;
 
     cursor = new Cursor(this);
@@ -75,7 +77,7 @@ public class Screen implements DisplayScreen {
 
     screenPacker = new ScreenPacker(pen, fieldManager, charset);
 
-    setCurrentScreen(ScreenOption.DEFAULT);
+    setCurrentScreen(currentOption);
   }
 
   public TelnetState getTelnetState() {

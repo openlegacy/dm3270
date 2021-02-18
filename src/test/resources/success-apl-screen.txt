@@ -1,0 +1,24 @@
+ FAQMENU0.0  ** QA FAQS -TESTING SHORT MENU- 05.1.00  **    ID=QA_TEST_LONG_ID  
+===>                                                                            
+  ┌───────────────────────────────────────────────────────────────────────┐     
+  │                 *** QA FAQS ASO Main Menu ***                         │     
+  ├────┬─────────────────┬────────────────────────────────────────────────┤     
+  │  1 │ HELP            │ Display help information                       │     
+  │  2 │ QA FAQS ASO     │ QA FAQS ASO Online menu driver                 │     
+  │  3 │ TERMINATE       │ Terminate FAQS session                         │     
+  │  4 │ AO              │ Automated System Operation Menu Panels         │     
+  │  5 │ QA FAQS PCS     │ QA FAQS Production Control System              │     
+  │  6 │ QA FLEE         │ QA FLEE Online Library Maintenance             │     
+  │  7 │ QA EXPLORE      │ QA EXPLORE for z/VSE Online                    │     
+  │  8 │ QA EXPLORE      │ QA EXPLORE for CICS Online                     │     
+  │  9 │ QA VSAMAID      │ QA VSAMAID for TESTING APP                     │     
+  │  A │ QA MASTERQAT    │ QA MASTERQAT for TESTING APP                   │     
+  │  B │ QA HYPER-BUF    │ QA HYPER-BUF for TESTING APP                   │     
+  │  C │ QA CPR          │ CICS PRINT FACILITY Menu Panels                │     
+  │  E │ QA EXTEND DASD  │ QA EXTEND DASD for z/VSE Online                │     
+  │  O │ QA EPIC         │ QA-EPIC For z/VSE                              │     
+  │  N │ LEGAL INFO      │ Legal Notice and Copyright statement           │     
+  └────┴─────────────────┴────────────────────────────────────────────────┘     
+     Copyright (c) 2011 QA. All rights reserved.                                
+                                                                                
+ PF01=Help PF03=Return PF12=Exit                                                
