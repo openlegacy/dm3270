@@ -29,8 +29,8 @@ public class TerminalClient {
   private boolean usesExtended3270;
   private ConsolePane consolePane;
   private SocketFactory socketFactory = SocketFactory.getDefault();
-  private ConnectionListener connectionListener;
   private int connectionTimeoutMillis;
+  private final ConnectionListenerBroadcast connectionListenerBroadcast;
 
   /**
    * Creates a new terminal client with given model and screen dimensions.
@@ -48,6 +48,7 @@ public class TerminalClient {
     telnetState.setDoDeviceType(model);
     screen = new Screen(new ScreenDimensions(24, 80), alternateScreenDimensions, telnetState,
         charset);
+    connectionListenerBroadcast = new ConnectionListenerBroadcast();
   }
 
   /**
@@ -82,13 +83,23 @@ public class TerminalClient {
   }
 
   /**
-   * Sets a class to handle general exception handler.
+   * Adds a class to handle general exception handler.
    *
    * @param connectionListener a class to handle exceptions. If none is provided then exceptions
    * stack trace will be printed to error output.
    */
-  public void setConnectionListener(ConnectionListener connectionListener) {
-    this.connectionListener = connectionListener;
+  public void addConnectionListener(ConnectionListener connectionListener) {
+    this.connectionListenerBroadcast.add(connectionListener);
+  }
+
+  /**
+   * Removes a class that handle general exception handler.
+   *
+   * @param connectionListener a class to handle exceptions. If none is provided then exceptions
+   * stack trace will be printed to error output.
+   */
+  public void removeConnectionListener(ConnectionListener connectionListener) {
+    this.connectionListenerBroadcast.remove(connectionListener);
   }
 
   /**
@@ -101,7 +112,7 @@ public class TerminalClient {
     screen.lockKeyboard("connect");
     consolePane = new ConsolePane(screen, new Site(host, port, usesExtended3270), socketFactory);
     consolePane.setConnectionTimeoutMillis(connectionTimeoutMillis);
-    consolePane.setConnectionListener(connectionListener);
+    consolePane.setConnectionListener(connectionListenerBroadcast);
     consolePane.connect();
   }
 
@@ -135,7 +146,7 @@ public class TerminalClient {
       return 1;
     }
     int pos = text.length() - 1;
-    while (text.charAt(pos) == '\u0000' || text.charAt(pos) == ' ') {
+    while (text.charAt(pos) == '\u0000') {
       pos--;
     }
     return pos + 1;

@@ -10,8 +10,6 @@ public class TerminalTypeSubcommand extends TelnetSubcommand {
   private static final byte OPTION_IS = 0;
   private static final byte OPTION_SEND = 1;
 
-  private final String terminalType2 = "IBM-3278-2-E";
-
   public TerminalTypeSubcommand(byte[] buffer, int offset, int length,
       TelnetState telnetState) {
     super(buffer, offset, length, telnetState);
@@ -32,7 +30,7 @@ public class TerminalTypeSubcommand extends TelnetSubcommand {
   public void process(Screen screen) {
     if (type == SubcommandType.SEND) {
       byte[] header = {TelnetCommand.IAC, TelnetCommand.SB, TERMINAL_TYPE, OPTION_IS};
-      byte[] terminal = terminalType2.getBytes(StandardCharsets.US_ASCII);
+      byte[] terminal = getTerminalString().getBytes(StandardCharsets.US_ASCII);
       byte[] reply = new byte[header.length + terminal.length + 2];
 
       System.arraycopy(header, 0, reply, 0, header.length);
@@ -41,10 +39,14 @@ public class TerminalTypeSubcommand extends TelnetSubcommand {
       reply[reply.length - 2] = TelnetCommand.IAC;
       reply[reply.length - 1] = TelnetCommand.SE;
 
-      telnetState.setTerminal(terminalType2);
+      telnetState.setTerminal(getTerminalString());
 
       setReply(new TerminalTypeSubcommand(reply, 0, reply.length, telnetState));
     }
+  }
+
+  private String getTerminalString() {
+    return telnetState.doDeviceType() + (telnetState.do3270Extended() ? "-E" : "");
   }
 
   @Override
@@ -53,7 +55,7 @@ public class TerminalTypeSubcommand extends TelnetSubcommand {
       case SEND:
         return type + " TerminalType";
       case IS:
-        return type + " TerminalType " + terminalType2;
+        return type + " TerminalType " + getTerminalString();
       default:
         return "SUB: " + "Unknown";
     }

@@ -1,7 +1,7 @@
 - !server {data: FFFD28, delayMillis: 248}
 - !client {data: FFFB28}
 - !server {data: FFFA280802FFF0, delayMillis: 249}
-- !client {data: FFFA28020749424D2D333237382D352D45FFF0}
+- !client {data: FFFA28020749424D2D333237382D35FFF0}
 - !server {data: FFFA28020449424D2D333237382D352D45014132305443303130FFF0, delayMillis: 249}
 - !client {data: FFFA28030700020405FFF0}
 # restore keyboard + user input screen + cursor=2,1
@@ -17,4 +17,3 @@
 # password: testpsw + enter
 - !client {data: 7DC94A11C9C3A385A2A397A2A6FFEF}
 #this login was created just to emulate the connection with a different TerminalType, to be precise IBM 3278-M5-E
- 

@@ -3,6 +3,8 @@ package com.bytezone.dm3270;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.bytezone.dm3270.attributes.StartFieldAttribute;
@@ -81,6 +83,8 @@ public class TerminalClientTest {
       .newSingleThreadScheduledExecutor();
   @Mock
   private Screen screenMock;
+  @Mock
+  private ConnectionListener connectionListenerMock;
 
   @Before
   public void setup() throws IOException {
@@ -89,7 +93,7 @@ public class TerminalClientTest {
     client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS);
     client.setConnectionTimeoutMillis(5000);
     exceptionWaiter = new ExceptionWaiter();
-    client.setConnectionListener(exceptionWaiter);
+    client.addConnectionListener(exceptionWaiter);
     connectClient();
   }
 
@@ -708,7 +712,7 @@ public class TerminalClientTest {
         "/login-3278-M2-E.yml");
     awaitKeyboardUnlock();
     client.setFieldTextByLabel("Userid:", "testusr ");
-    client.setFieldTextByLabel("Passcode:", "testpsw                                           ");
+    client.setFieldTextByLabel("Passcode:", "testpsw");
     sendEnter();
     awaitKeyboardUnlock();
     assertThat(getFileContent("login-3278-M2-E-final-screen.txt")).isEqualTo(getScreenText());
@@ -723,5 +727,13 @@ public class TerminalClientTest {
     sendEnter();
     awaitKeyboardUnlock();
     assertThat(getScreenText()).isEqualTo(getFileContent("success-apl-screen.txt"));
+  }
+
+  @Test
+  public void shouldNotNotifyServerDisconnectionWhenClientDisconnect() throws Exception {
+    awaitKeyboardUnlock();
+    client.addConnectionListener(connectionListenerMock);
+    client.disconnect();
+    verify(connectionListenerMock, never()).onConnectionClosed();
   }
 }
