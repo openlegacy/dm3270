@@ -43,7 +43,8 @@ public class ConsolePane implements FieldChangeListener, CursorMoveListener,
     this.connectionTimeoutMillis = connectionTimeoutMillis;
   }
 
-  public void setConnectionListener(ConnectionListener connectionListener) {
+  public void setConnectionListener(
+      ConnectionListener connectionListener) {
     this.connectionListener = connectionListener;
   }
 

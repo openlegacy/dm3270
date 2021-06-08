@@ -15,8 +15,6 @@ public class TerminalServer implements Runnable {
   private final int serverPort;
   private final SocketFactory socketFactory;
   private int connectionTimeoutMillis;
-  private ConnectionListener connectionListener;
-
   private Socket serverSocket;
   private OutputStream serverOut;
 
@@ -24,6 +22,7 @@ public class TerminalServer implements Runnable {
   private volatile boolean running;
 
   private final BufferListener telnetListener;
+  private ConnectionListener connectionListener;
 
   public TerminalServer(String serverURL, int serverPort, SocketFactory socketFactory,
       BufferListener listener) {
@@ -47,9 +46,7 @@ public class TerminalServer implements Runnable {
       try {
         serverSocket = socketFactory.createSocket();
         serverSocket.connect(new InetSocketAddress(serverURL, serverPort), connectionTimeoutMillis);
-        if (connectionListener != null) {
-          connectionListener.onConnection();
-        }
+        connectionListener.onConnection();
       } catch (IOException ex) {
         handleException(ex);
         return;
@@ -114,6 +111,7 @@ public class TerminalServer implements Runnable {
       if (telnetListener != null) {
         telnetListener.close();
       }
+
     } catch (IOException e) {
       handleException(e);
     }
@@ -123,5 +121,4 @@ public class TerminalServer implements Runnable {
   public String toString() {
     return String.format("TerminalSocket listening to %s : %d", serverURL, serverPort);
   }
-
 }

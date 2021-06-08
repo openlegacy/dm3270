@@ -14,7 +14,7 @@ public class TelnetState implements Runnable {
   private static final Logger LOG = LoggerFactory.getLogger(TelnetState.class);
 
   private static final String[] TERMINAL_TYPES =
-      {"", "", "IBM-3278-2-E", "IBM-3278-3-E", "IBM-3278-4-E", "IBM-3278-5-E"};
+      {"", "", "IBM-3278-2", "IBM-3278-3", "IBM-3278-4", "IBM-3278-5"};
 
   // preferences
   private boolean do3270Extended;
