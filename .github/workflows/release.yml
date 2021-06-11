@@ -18,12 +18,12 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./dm3270/target/*.jar
+          file: target/*.jar
           file_glob: true
           tag: ${{ github.ref }}
       - name: update Readme version
         run: |-
-          sed "s/<version>.*<\/version>/<version>${GITHUB_REF#refs/tags/v}<\/version>/g" README.md > README.md
+          sed "s/<version>.*<\/version>/<version>${GITHUB_REF#refs/tags/v}-lib<\/version>/g" README.md > README.md
           git add README.md
           git config --local user.email "$(git log --format='%ae' HEAD^!)"
           git config --local user.name "$(git log --format='%an' HEAD^!)"
