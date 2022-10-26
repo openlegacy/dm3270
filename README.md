@@ -15,7 +15,7 @@ To use the emulator as maven dependency include in `pom.xml`:
   <dependency>
       <groupId>com.github.blazemeter</groupId>
       <artifactId>dm3270</artifactId>
-      <version>0.14-lib-lib</version>
+      <version>0.15-lib</version>
   </dependency>
 ```
 
