@@ -27,6 +27,7 @@ public enum Charset {
   CP931,
   CP935,
   CP937,
+  CP424,
   CP939;
 
   private char[] charsMapping;
