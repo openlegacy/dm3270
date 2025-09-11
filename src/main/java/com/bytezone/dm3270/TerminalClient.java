@@ -431,6 +431,19 @@ public class TerminalClient {
   }
 
   /**
+   * Get the color at a specific screen position.
+   *
+   * @param row row number (1-based)
+   * @param column column number (1-based)
+   * @return the Color at the specified position
+   */
+  public java.awt.Color getColorAt(int row, int column) {
+    int linearPosition = (row - 1) * screen.getScreenDimensions().columns + column - 1;
+    ScreenPosition screenPosition = screen.getScreenPosition(linearPosition);
+    return screenPosition.getScreenContext().foregroundColor;
+  }
+
+  /**
    * Disconnect the terminal emulator from the server.
    *
    * @throws InterruptedException thrown when the disconnect is interrupted.
