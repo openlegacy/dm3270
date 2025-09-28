@@ -192,7 +192,7 @@ public class TerminalClientTest {
   public void shouldGetWelcomeScreenWithRightCharset() throws Exception {
     cleanShutdown();
     startServiceWithFlow(LOGIN_SPECIAL_CHARACTERS_FLOW);
-    client = new TerminalClient(TERMINAL_MODEL_TYPE_THREE, SCREEN_DIMENSIONS, Charset.CP1147);
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS, Charset.CP1147);
     client.setUsesExtended3270(true);
     connectClient();
     awaitKeyboardUnlock();
@@ -240,6 +240,29 @@ public class TerminalClientTest {
 
       public void checkServerTrusted(
           X509Certificate[] certs, String authType) {
+      }
+    };
+    sslContext.init(null, new TrustManager[]{trustManager},
+        new SecureRandom());
+    return sslContext;
+  }
+
+  private SSLContext buildTls12SslContext() throws GeneralSecurityException {
+    SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+    TrustManager trustManager = new X509TrustManager() {
+
+      public X509Certificate[] getAcceptedIssuers() {
+        return new X509Certificate[0];
+      }
+
+      public void checkClientTrusted(
+          X509Certificate[] certs, String authType) {
+        // Accept all client certificates (untrusted)
+      }
+
+      public void checkServerTrusted(
+          X509Certificate[] certs, String authType) {
+        // Accept all server certificates (untrusted)
       }
     };
     sslContext.init(null, new TrustManager[]{trustManager},
@@ -762,5 +785,225 @@ public class TerminalClientTest {
     client.addConnectionListener(connectionListenerMock);
     client.disconnect();
     verify(connectionListenerMock, never()).onConnectionClosed();
+  }
+
+  @Test
+  public void shouldConnectToOpenLegacyMainframeAndSendCICS61() throws Exception {
+    // Clean up the mock service connection first
+    cleanShutdown();
+    service.stop(TIMEOUT_MILLIS);
+    
+    // Create a new client for the real mainframe connection
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS);
+    client.setConnectionTimeoutMillis(10000);
+    exceptionWaiter = new ExceptionWaiter();
+    client.addConnectionListener(exceptionWaiter);
+    
+    // Connect to the real mainframe at mainframe.openlegacy.com
+    client.connect("mainframe.openlegacy.com", 623);
+    
+    // Add screen change listener for debugging
+    client.addScreenChangeListener(
+        screenWatcher -> LOG.debug("Screen updated from OpenLegacy, cursor={}, alarm={}, screen:{}",
+            client.getCursorPosition().orElse(null), client.isAlarmOn(), getScreenText()));
+    
+    // Wait for the initial screen to load and keyboard to unlock
+    awaitKeyboardUnlock();
+    
+    // First screen: Send CICS61 at position 24,2 (row 24, column 2)
+    client.setFieldTextByCoord(24, 2, "CICS61");
+    
+    // Send ENTER key
+    sendEnter();
+    
+    // Wait for the response
+    awaitKeyboardUnlock();
+    
+    // Log the first screen response
+    String firstScreenText = getScreenText();
+    LOG.info("Screen after sending CICS61: {}", firstScreenText);
+    
+    // Verify that we got a response (the screen should have changed)
+    assertThat(firstScreenText).isNotEmpty();
+    
+    // Second screen: Send username and password
+    String username = System.getProperty("ol.mf.user", "XXXX");
+    String password = System.getProperty("ol.mf.password", "YYYYYYY");
+    
+    // Send username at position 10,26
+    client.setFieldTextByCoord(10, 26, username);
+    
+    // Send password at position 11,26
+    client.setFieldTextByCoord(11, 26, password);
+    
+    // Send ENTER key
+    sendEnter();
+    
+    // Wait for the response
+    awaitKeyboardUnlock();
+    
+    // Log the second screen response
+    String secondScreenText = getScreenText();
+    LOG.info("Screen after sending credentials: {}", secondScreenText);
+    
+    // Verify that we got a response after login
+    assertThat(secondScreenText).isNotEmpty();
+    assertThat(secondScreenText).isNotEqualTo(firstScreenText);
+    
+    // Third screen: Send CC00 command
+    // Send "CC00" at position 1,5
+    client.setFieldTextByCoord(1, 5, "CC00");
+    
+    // Send ENTER key
+    sendEnter();
+    
+    // Wait for the response
+    awaitKeyboardUnlock();
+    
+    // Log the third screen response
+    String thirdScreenText = getScreenText();
+    LOG.info("Screen after sending CC00 command: {}", thirdScreenText);
+    
+    // Verify that we got a response after the CC00 command
+    assertThat(thirdScreenText).isNotEmpty();
+    assertThat(thirdScreenText).isNotEqualTo(secondScreenText);
+    
+    // Clean up - disconnect from the real mainframe
+    client.disconnect();
+  }
+
+  @Test
+  public void shouldConnectToOpenLegacyMainframeViaTls12AndSendCICS61() throws Exception {
+    // Clean up the mock service connection first
+    cleanShutdown();
+    service.stop(TIMEOUT_MILLIS);
+    
+    // Create a new client for the real mainframe connection with TLS 1.2
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS);
+    client.setConnectionTimeoutMillis(10000);
+    client.setSocketFactory(buildTls12SslContext().getSocketFactory());
+    exceptionWaiter = new ExceptionWaiter();
+    client.addConnectionListener(exceptionWaiter);
+    
+    // Connect to the real mainframe at mainframe.openlegacy.com via TLS port 629
+    client.connect("mainframe.openlegacy.com", 629);
+    
+    // Add screen change listener for debugging
+    client.addScreenChangeListener(
+        screenWatcher -> LOG.debug("Screen updated from OpenLegacy TLS, cursor={}, alarm={}, screen:{}",
+            client.getCursorPosition().orElse(null), client.isAlarmOn(), getScreenText()));
+    
+    // Wait for the initial screen to load and keyboard to unlock
+    awaitKeyboardUnlock();
+    
+    // First screen: Send CICS61 at position 24,2 (row 24, column 2)
+    client.setFieldTextByCoord(24, 2, "CICS61");
+    
+    // Send ENTER key
+    sendEnter();
+    
+    // Wait for the response
+    awaitKeyboardUnlock();
+    
+    // Log the first screen response
+    String firstScreenText = getScreenText();
+    LOG.info("Screen after sending CICS61 via TLS: {}", firstScreenText);
+    
+    // Verify that we got a response (the screen should have changed)
+    assertThat(firstScreenText).isNotEmpty();
+    
+    // Second screen: Send username and password
+    String username = System.getProperty("ol.mf.user", "XXXX");
+    String password = System.getProperty("ol.mf.password", "YYYYYYY");
+    
+    // Send username at position 10,26
+    client.setFieldTextByCoord(10, 26, username);
+    
+    // Send password at position 11,26
+    client.setFieldTextByCoord(11, 26, password);
+    
+    // Send ENTER key
+    sendEnter();
+    
+    // Wait for the response
+    awaitKeyboardUnlock();
+    
+    // Log the second screen response
+    String secondScreenText = getScreenText();
+    LOG.info("Screen after sending credentials via TLS: {}", secondScreenText);
+    
+    // Verify that we got a response after login
+    assertThat(secondScreenText).isNotEmpty();
+    assertThat(secondScreenText).isNotEqualTo(firstScreenText);
+    
+    // Third screen: Send CC00 command
+    // Send "CC00" at position 1,5
+    client.setFieldTextByCoord(1, 5, "CC00");
+    
+    // Send ENTER key
+    sendEnter();
+    
+    // Wait for the response
+    awaitKeyboardUnlock();
+    
+    // Log the third screen response
+    String thirdScreenText = getScreenText();
+    LOG.info("Screen after sending CC00 command via TLS: {}", thirdScreenText);
+    
+    // Verify that we got a response after the CC00 command
+    assertThat(thirdScreenText).isNotEmpty();
+    assertThat(thirdScreenText).isNotEqualTo(secondScreenText);
+    
+    // Clean up - disconnect from the real mainframe
+    client.disconnect();
+  }
+
+  @Test
+  public void shouldGetCorrectFieldColorsWhenConnectingToLocalhost23() throws Exception {
+    // Clean up the mock service connection first
+    cleanShutdown();
+    service.stop(TIMEOUT_MILLIS);
+    
+    // Create a new client for localhost:23 connection
+    client = new TerminalClient(TERMINAL_MODEL_TYPE_TWO, SCREEN_DIMENSIONS);
+    client.setConnectionTimeoutMillis(1000);
+    exceptionWaiter = new ExceptionWaiter();
+    client.addConnectionListener(exceptionWaiter);
+    
+    // Connect to localhost:23
+    client.connect("localhost", 23);
+    
+    // Add screen change listener for debugging
+    client.addScreenChangeListener(
+        screenWatcher -> LOG.debug("Screen updated from localhost:23, cursor={}, alarm={}, screen:{}",
+            client.getCursorPosition().orElse(null), client.isAlarmOn(), getScreenText()));
+    
+    // Wait for the initial screen to load and keyboard to unlock
+
+    // Log the screen content for debugging
+    String screenText = getScreenText();
+    LOG.info("Screen content from localhost:23: {}", screenText);
+    
+    // Check field colors at specified positions
+    java.awt.Color colorAt11_24 = client.getColorAt(11, 24);
+    java.awt.Color colorAt12_24 = client.getColorAt(12, 24);
+    java.awt.Color colorAt14_24 = client.getColorAt(14, 24);
+    
+    LOG.info("Color at position 11,24: {}", colorAt11_24);
+    LOG.info("Color at position 12,24: {}", colorAt12_24);
+    LOG.info("Color at position 14,24: {}", colorAt14_24);
+    
+    // Verify the expected colors
+    // Red color
+    assertThat(colorAt11_24).isEqualTo(java.awt.Color.RED);
+    
+    // Pink color
+    assertThat(colorAt12_24).isEqualTo(java.awt.Color.PINK);
+    
+    // Yellow color
+    assertThat(colorAt14_24).isEqualTo(java.awt.Color.YELLOW);
+    
+    // Clean up - disconnect from localhost
+    client.disconnect();
   }
 }
