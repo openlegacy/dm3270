@@ -457,6 +457,20 @@ public class TerminalClient {
   }
 
   /**
+   * Check if a specific screen position has underline (underscore) highlighting.
+   *
+   * @param row row number (1-based)
+   * @param column column number (1-based)
+   * @return true if the position has underline highlighting, false otherwise
+   */
+  public boolean isUnderlineAt(int row, int column) {
+    int linearPosition = (row - 1) * screen.getScreenDimensions().columns + column - 1;
+    ScreenPosition screenPosition = screen.getScreenPosition(linearPosition);
+    byte highlight = screenPosition.getScreenContext().highlight;
+    return (highlight & 0x0F) == 0x04; // 0x04 is the underscore/underline highlight value
+  }
+
+  /**
    * Disconnect the terminal emulator from the server.
    *
    * @throws InterruptedException thrown when the disconnect is interrupted.
@@ -466,3 +480,4 @@ public class TerminalClient {
   }
 
 }
+
