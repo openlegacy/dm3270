@@ -4,22 +4,21 @@ import com.bytezone.dm3270.orders.BufferAddress;
 
 public class ScreenDimensions {
 
-  public final int rows;
-  public final int columns;
-  public final int size;
+    public final int rows;
+    public final int columns;
+    public final int size;
 
-  public ScreenDimensions(int rows, int columns) {
-    this.rows = rows;
-    this.columns = columns;
+    public ScreenDimensions(int rows, int columns) {
+        this.rows = rows;
+        this.columns = columns;
 
-    size = rows * columns;
+        size = rows * columns;
 
-    BufferAddress.setScreenWidth(columns);       // for debugging output
-  }
+        BufferAddress.setScreenWidth(columns); // for debugging output
+    }
 
-  @Override
-  public String toString() {
-    return String.format("[Rows:%d, Columns:%d, Size:%d]", rows, columns, size);
-  }
-
+    @Override
+    public String toString() {
+        return String.format("[Rows:%d, Columns:%d, Size:%d]", rows, columns, size);
+    }
 }

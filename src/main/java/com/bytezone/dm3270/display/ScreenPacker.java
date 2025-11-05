@@ -13,147 +13,148 @@ import java.util.List;
 
 public class ScreenPacker {
 
-  private final byte[] buffer = new byte[8192];
+    private final byte[] buffer = new byte[8192];
 
-  private Pen pen;
-  private final FieldManager fieldManager;
-  private final Charset charset;
+    private Pen pen;
+    private final FieldManager fieldManager;
+    private final Charset charset;
 
-  public ScreenPacker(Pen pen, FieldManager fieldManager, Charset charset) {
-    this.pen = pen;
-    this.fieldManager = fieldManager;
-    this.charset = charset;
-  }
-
-  public Command readModifiedFields(byte currentAID, int cursorLocation,
-      boolean readModifiedAll, boolean sscpLuData) {
-    // pack the AID
-    int ptr = 0;
-
-    // PA keys and the CLR key only return the AID byte
-    if (!readModifiedAll) {
-      if (currentAID == AIDCommand.AID_PA1 || currentAID == AIDCommand.AID_PA2
-          || currentAID == AIDCommand.AID_PA3 || currentAID == AIDCommand.AID_CLEAR) {
-        buffer[ptr++] = currentAID;
-        return new AIDCommand(buffer, 0, ptr, charset);
-      }
+    public ScreenPacker(Pen pen, FieldManager fieldManager, Charset charset) {
+        this.pen = pen;
+        this.fieldManager = fieldManager;
+        this.charset = charset;
     }
 
-    if (!sscpLuData) {
-      // pack the cursor address
-      buffer[ptr++] = currentAID;
-      BufferAddress ba = new BufferAddress(cursorLocation);
-      ptr = ba.packAddress(buffer, ptr);
-    }
+    public Command readModifiedFields(
+            byte currentAID, int cursorLocation, boolean readModifiedAll, boolean sscpLuData) {
+        // pack the AID
+        int ptr = 0;
 
-    if (!fieldManager.getFields().isEmpty()) {
-      // pack all modified fields
-      for (Field field : fieldManager.getFields()) {
-        if (field.isModified()) {
-          ptr = packField(field, buffer, ptr);
-        }
-      }
-    } else {
-      for (ScreenPosition sp : pen.fromCurrentPosition()) {
-        if (!sp.isNull()) {
-          buffer[ptr++] = sp.getByte();
-        }
-      }
-    }
-
-    return sscpLuData ? new SscpLuDataCommand(buffer, 0, ptr, charset)
-        : new AIDCommand(buffer, 0, ptr, charset);
-  }
-
-  private int packField(Field field, byte[] buffer, int ptr) {
-    assert field.isModified();
-
-    for (ScreenPosition sp : field) {
-      if (sp.isStartField()) {
-        buffer[ptr++] = Order.SET_BUFFER_ADDRESS;
-        BufferAddress ba = new BufferAddress(field.getFirstLocation());
-        ptr = ba.packAddress(buffer, ptr);
-      } else if (!sp.isNull()) {
-        buffer[ptr++] = sp.getByte();                  // suppress nulls
-      }
-    }
-
-    return ptr;
-  }
-
-  public AIDCommand readBuffer(byte currentAID, int cursorLocation, byte replyMode,
-      byte[] replyTypes) {
-    // pack the AID
-    int ptr = 0;
-    buffer[ptr++] = currentAID;
-
-    // pack the cursor address
-    BufferAddress ba = new BufferAddress(cursorLocation);
-    ptr = ba.packAddress(buffer, ptr);
-
-    // pack every screen location
-    for (ScreenPosition sp : pen) {
-      if (sp.isStartField()) {
-        ptr = packStartPosition(sp, buffer, ptr, replyMode);
-        // don't suppress nulls
-      } else {
-        ptr = packDataPosition(sp, buffer, ptr, replyMode, replyTypes);
-      }
-    }
-
-    return new AIDCommand(buffer, 0, ptr, charset);
-  }
-
-  private int packStartPosition(ScreenPosition sp, byte[] buffer, int ptr,
-      byte replyMode) {
-    assert sp.isStartField();
-
-    StartFieldAttribute sfa = sp.getStartFieldAttribute();
-
-    if (replyMode == SetReplyModeSF.RM_FIELD) {
-      buffer[ptr++] = Order.START_FIELD;
-      buffer[ptr++] = sfa.getAttributeValue();
-    } else {
-      buffer[ptr++] = Order.START_FIELD_EXTENDED;
-
-      List<Attribute> attributes = sp.getAttributes();
-      buffer[ptr++] = (byte) (attributes.size() + 1);    // +1 for StartFieldAttribute
-
-      ptr = sfa.pack(buffer, ptr);                       // pack the SFA first
-      for (Attribute attribute : attributes) {
-        ptr = attribute.pack(buffer, ptr);               // then pack the rest
-      }
-    }
-
-    return ptr;
-  }
-
-  private int packDataPosition(ScreenPosition sp, byte[] buffer, int ptr, byte replyMode,
-      byte[] replyTypes) {
-    if (replyMode == SetReplyModeSF.RM_CHARACTER) {
-      for (Attribute attribute : sp.getAttributes()) {
-        if (attribute.getAttributeType() == Attribute.AttributeType.RESET) {
-          buffer[ptr++] = Order.SET_ATTRIBUTE;
-          ptr = attribute.pack(buffer, ptr);
-        } else {
-          for (byte b : replyTypes) {
-            if (attribute.matches(b)) {
-              buffer[ptr++] = Order.SET_ATTRIBUTE;
-              ptr = attribute.pack(buffer, ptr);
-              break;
+        // PA keys and the CLR key only return the AID byte
+        if (!readModifiedAll) {
+            if (currentAID == AIDCommand.AID_PA1
+                    || currentAID == AIDCommand.AID_PA2
+                    || currentAID == AIDCommand.AID_PA3
+                    || currentAID == AIDCommand.AID_CLEAR) {
+                buffer[ptr++] = currentAID;
+                return new AIDCommand(buffer, 0, ptr, charset);
             }
-          }
         }
-      }
+
+        if (!sscpLuData) {
+            // pack the cursor address
+            buffer[ptr++] = currentAID;
+            BufferAddress ba = new BufferAddress(cursorLocation);
+            ptr = ba.packAddress(buffer, ptr);
+        }
+
+        if (!fieldManager.getFields().isEmpty()) {
+            // pack all modified fields
+            for (Field field : fieldManager.getFields()) {
+                if (field.isModified()) {
+                    ptr = packField(field, buffer, ptr);
+                }
+            }
+        } else {
+            for (ScreenPosition sp : pen.fromCurrentPosition()) {
+                if (!sp.isNull()) {
+                    buffer[ptr++] = sp.getByte();
+                }
+            }
+        }
+
+        return sscpLuData
+                ? new SscpLuDataCommand(buffer, 0, ptr, charset)
+                : new AIDCommand(buffer, 0, ptr, charset);
     }
 
-    if (sp.isGraphic() && replyMode != SetReplyModeSF.RM_FIELD) {
-      buffer[ptr++] = Order.GRAPHICS_ESCAPE;
+    private int packField(Field field, byte[] buffer, int ptr) {
+        assert field.isModified();
+
+        for (ScreenPosition sp : field) {
+            if (sp.isStartField()) {
+                buffer[ptr++] = Order.SET_BUFFER_ADDRESS;
+                BufferAddress ba = new BufferAddress(field.getFirstLocation());
+                ptr = ba.packAddress(buffer, ptr);
+            } else if (!sp.isNull()) {
+                buffer[ptr++] = sp.getByte(); // suppress nulls
+            }
+        }
+
+        return ptr;
     }
 
-    buffer[ptr++] = sp.getByte();
+    public AIDCommand readBuffer(
+            byte currentAID, int cursorLocation, byte replyMode, byte[] replyTypes) {
+        // pack the AID
+        int ptr = 0;
+        buffer[ptr++] = currentAID;
 
-    return ptr;
-  }
+        // pack the cursor address
+        BufferAddress ba = new BufferAddress(cursorLocation);
+        ptr = ba.packAddress(buffer, ptr);
 
+        // pack every screen location
+        for (ScreenPosition sp : pen) {
+            if (sp.isStartField()) {
+                ptr = packStartPosition(sp, buffer, ptr, replyMode);
+                // don't suppress nulls
+            } else {
+                ptr = packDataPosition(sp, buffer, ptr, replyMode, replyTypes);
+            }
+        }
+
+        return new AIDCommand(buffer, 0, ptr, charset);
+    }
+
+    private int packStartPosition(ScreenPosition sp, byte[] buffer, int ptr, byte replyMode) {
+        assert sp.isStartField();
+
+        StartFieldAttribute sfa = sp.getStartFieldAttribute();
+
+        if (replyMode == SetReplyModeSF.RM_FIELD) {
+            buffer[ptr++] = Order.START_FIELD;
+            buffer[ptr++] = sfa.getAttributeValue();
+        } else {
+            buffer[ptr++] = Order.START_FIELD_EXTENDED;
+
+            List<Attribute> attributes = sp.getAttributes();
+            buffer[ptr++] = (byte) (attributes.size() + 1); // +1 for StartFieldAttribute
+
+            ptr = sfa.pack(buffer, ptr); // pack the SFA first
+            for (Attribute attribute : attributes) {
+                ptr = attribute.pack(buffer, ptr); // then pack the rest
+            }
+        }
+
+        return ptr;
+    }
+
+    private int packDataPosition(
+            ScreenPosition sp, byte[] buffer, int ptr, byte replyMode, byte[] replyTypes) {
+        if (replyMode == SetReplyModeSF.RM_CHARACTER) {
+            for (Attribute attribute : sp.getAttributes()) {
+                if (attribute.getAttributeType() == Attribute.AttributeType.RESET) {
+                    buffer[ptr++] = Order.SET_ATTRIBUTE;
+                    ptr = attribute.pack(buffer, ptr);
+                } else {
+                    for (byte b : replyTypes) {
+                        if (attribute.matches(b)) {
+                            buffer[ptr++] = Order.SET_ATTRIBUTE;
+                            ptr = attribute.pack(buffer, ptr);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (sp.isGraphic() && replyMode != SetReplyModeSF.RM_FIELD) {
+            buffer[ptr++] = Order.GRAPHICS_ESCAPE;
+        }
+
+        buffer[ptr++] = sp.getByte();
+
+        return ptr;
+    }
 }

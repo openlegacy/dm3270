@@ -8,52 +8,52 @@ import java.util.concurrent.TimeoutException;
 
 public abstract class ConditionWaiter {
 
-  private static final int STABLE_PERIOD_MILLIS = 1000;
+    private static final int STABLE_PERIOD_MILLIS = 1000;
 
-  private final CountDownLatch lock = new CountDownLatch(1);
-  protected final TerminalClient client;
-  private final ScheduledExecutorService stableTimeoutExecutor;
-  private ScheduledFuture stableTimeoutTask;
-  private boolean ended;
+    private final CountDownLatch lock = new CountDownLatch(1);
+    protected final TerminalClient client;
+    private final ScheduledExecutorService stableTimeoutExecutor;
+    private ScheduledFuture stableTimeoutTask;
+    private boolean ended;
 
-  public ConditionWaiter(TerminalClient client, ScheduledExecutorService stableTimeoutExecutor) {
-    this.client = client;
-    this.stableTimeoutExecutor = stableTimeoutExecutor;
-  }
-
-  protected synchronized void startStablePeriod() {
-    if (ended) {
-      return;
+    public ConditionWaiter(TerminalClient client, ScheduledExecutorService stableTimeoutExecutor) {
+        this.client = client;
+        this.stableTimeoutExecutor = stableTimeoutExecutor;
     }
-    endStablePeriod();
-    stableTimeoutTask = stableTimeoutExecutor
-        .schedule(lock::countDown, STABLE_PERIOD_MILLIS, TimeUnit.MILLISECONDS);
-  }
 
-  protected synchronized void endStablePeriod() {
-    if (stableTimeoutTask != null) {
-      stableTimeoutTask.cancel(false);
+    protected synchronized void startStablePeriod() {
+        if (ended) {
+            return;
+        }
+        endStablePeriod();
+        stableTimeoutTask =
+                stableTimeoutExecutor.schedule(
+                        lock::countDown, STABLE_PERIOD_MILLIS, TimeUnit.MILLISECONDS);
     }
-  }
 
-  public void await(long timeoutMillis) throws InterruptedException, TimeoutException {
-    try {
-      if (!lock.await(timeoutMillis, TimeUnit.MILLISECONDS)) {
-        throw new TimeoutException();
-      }
-    } finally {
-      stop();
+    protected synchronized void endStablePeriod() {
+        if (stableTimeoutTask != null) {
+            stableTimeoutTask.cancel(false);
+        }
     }
-  }
 
-  private synchronized void cancelWait() {
-    ended = true;
-    lock.countDown();
-    endStablePeriod();
-  }
+    public void await(long timeoutMillis) throws InterruptedException, TimeoutException {
+        try {
+            if (!lock.await(timeoutMillis, TimeUnit.MILLISECONDS)) {
+                throw new TimeoutException();
+            }
+        } finally {
+            stop();
+        }
+    }
 
-  protected void stop() {
-    cancelWait();
-  }
+    private synchronized void cancelWait() {
+        ended = true;
+        lock.countDown();
+        endStablePeriod();
+    }
 
+    protected void stop() {
+        cancelWait();
+    }
 }

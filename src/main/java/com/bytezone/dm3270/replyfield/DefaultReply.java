@@ -6,19 +6,20 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultReply extends QueryReplyField {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultReply.class);
-  private final Charset charset;
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultReply.class);
+    private final Charset charset;
 
-  public DefaultReply(byte[] buffer, Charset charset) {
-    super(buffer);
-    this.charset = charset;
-    LOG.warn("Unknown reply field: {}\n{}", String.format("%02X", buffer[0]),
-        charset.toHex(buffer));
-  }
+    public DefaultReply(byte[] buffer, Charset charset) {
+        super(buffer);
+        this.charset = charset;
+        LOG.warn(
+                "Unknown reply field: {}\n{}",
+                String.format("%02X", buffer[0]),
+                charset.toHex(buffer));
+    }
 
-  @Override
-  public String toString() {
-    return super.toString() + String.format("%n%n%s", charset.toHex(data));
-  }
-
+    @Override
+    public String toString() {
+        return super.toString() + String.format("%n%n%s", charset.toHex(data));
+    }
 }

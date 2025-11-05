@@ -4,16 +4,15 @@ import com.bytezone.dm3270.display.Screen.ScreenOption;
 
 public interface DisplayScreen {
 
-  Pen getPen();
+    Pen getPen();
 
-  ScreenDimensions getScreenDimensions();
+    ScreenDimensions getScreenDimensions();
 
-  ScreenPosition getScreenPosition(int position);
+    ScreenPosition getScreenPosition(int position);
 
-  int validate(int position);
+    int validate(int position);
 
-  void clearScreen(ScreenOption newScreen);
+    void clearScreen(ScreenOption newScreen);
 
-  void insertCursor(int position);
-
+    void insertCursor(int position);
 }

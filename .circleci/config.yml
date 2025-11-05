@@ -1,0 +1,45 @@
+version: 2.1
+
+executors:
+  java-executor:
+    docker:
+      - image: cimg/openjdk:17.0.1
+    resource_class: medium  # 2 vCPUs, 4GB RAM
+    working_directory: ~/repo
+    environment:
+      GRADLE_OPTS: "-Xmx2048m -Dorg.gradle.daemon=false"
+
+jobs:
+  build-test-publish:
+    executor: java-executor
+    steps:
+      - checkout
+
+      - run:
+          name: Prepare
+          command: chmod +x gradlew
+
+      - run:
+          name: Build and Test
+          command: ./gradlew clean build
+
+      - when:
+          condition:
+            or:
+              - equal: [ main, << pipeline.git.branch >> ]
+              - equal: [ master, << pipeline.git.branch >> ]
+              - matches:
+                  pattern: "^feature/OPS-.*"
+                  value: << pipeline.git.branch >>
+          steps:
+            - run:
+                name: Publish to OpenLegacy Artifactory
+                command: ./gradlew publishAllPublicationsToOpenlegacy-m2-publicRepository
+
+workflows:
+  version: 2
+  build-test-publish:
+    jobs:
+      - build-test-publish:
+          context:
+            - CI_GLOBAL

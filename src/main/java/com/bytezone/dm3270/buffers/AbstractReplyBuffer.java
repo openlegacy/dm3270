@@ -4,23 +4,21 @@ import java.util.Optional;
 
 public abstract class AbstractReplyBuffer extends AbstractBuffer implements ReplyBuffer {
 
-  private Buffer reply;
+    private Buffer reply;
 
-  protected AbstractReplyBuffer() {
-  }
+    protected AbstractReplyBuffer() {}
 
-  public AbstractReplyBuffer(byte[] buffer, int offset, int length) {
-    super(buffer, offset, length);
-  }
+    public AbstractReplyBuffer(byte[] buffer, int offset, int length) {
+        super(buffer, offset, length);
+    }
 
-  @Override
-  public void setReply(Buffer reply) {
-    this.reply = reply;
-  }
+    @Override
+    public void setReply(Buffer reply) {
+        this.reply = reply;
+    }
 
-  @Override
-  public Optional<Buffer> getReply() {
-    return reply == null ? Optional.empty() : Optional.of(reply);
-  }
-
+    @Override
+    public Optional<Buffer> getReply() {
+        return reply == null ? Optional.empty() : Optional.of(reply);
+    }
 }

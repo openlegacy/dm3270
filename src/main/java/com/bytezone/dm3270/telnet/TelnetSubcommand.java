@@ -5,35 +5,37 @@ import com.bytezone.dm3270.streams.TelnetState;
 
 public abstract class TelnetSubcommand extends AbstractTelnetCommand {
 
-  // subcommands
-  public static final byte BINARY = 0x00;
-  public static final byte TERMINAL_TYPE = 0x18;
-  public static final byte EOR = 0x19;
-  public static final byte TN3270E = 0x28;
-  public static final byte START_TLS = 0x2E;
+    // subcommands
+    public static final byte BINARY = 0x00;
+    public static final byte TERMINAL_TYPE = 0x18;
+    public static final byte EOR = 0x19;
+    public static final byte TN3270E = 0x28;
+    public static final byte START_TLS = 0x2E;
 
-  protected SubcommandType type;
-  protected String value;
+    protected SubcommandType type;
+    protected String value;
 
-  public enum SubcommandType {
-    SEND, IS, DEVICE_TYPE, FUNCTIONS
-  }
+    public enum SubcommandType {
+        SEND,
+        IS,
+        DEVICE_TYPE,
+        FUNCTIONS
+    }
 
-  public TelnetSubcommand(byte[] buffer, int offset, int length, TelnetState telnetState) {
-    super(buffer, offset, length, telnetState);
-  }
+    public TelnetSubcommand(byte[] buffer, int offset, int length, TelnetState telnetState) {
+        super(buffer, offset, length, telnetState);
+    }
 
-  public String getValue() {
-    return value;
-  }
+    public String getValue() {
+        return value;
+    }
 
-  public String getName() {
-    return toString();
-  }
+    public String getName() {
+        return toString();
+    }
 
-  @Override
-  public String toString() {
-    return String.format("Subcommand: %s %s", type, (value == null ? "" : value));
-  }
-
+    @Override
+    public String toString() {
+        return String.format("Subcommand: %s %s", type, (value == null ? "" : value));
+    }
 }

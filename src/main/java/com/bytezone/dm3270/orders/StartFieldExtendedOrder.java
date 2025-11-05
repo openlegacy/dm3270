@@ -10,71 +10,70 @@ import java.util.Optional;
 
 public class StartFieldExtendedOrder extends Order {
 
-  private StartFieldAttribute startFieldAttribute;
-  private final List<Attribute> attributes = new ArrayList<>();
-  private int location = -1;
+    private StartFieldAttribute startFieldAttribute;
+    private final List<Attribute> attributes = new ArrayList<>();
+    private int location = -1;
 
-  public StartFieldExtendedOrder(byte[] buffer, int offset) {
-    assert buffer[offset] == Order.START_FIELD_EXTENDED;
+    public StartFieldExtendedOrder(byte[] buffer, int offset) {
+        assert buffer[offset] == Order.START_FIELD_EXTENDED;
 
-    int totalAttributePairs = buffer[offset + 1] & 0xFF;
-    this.buffer = new byte[totalAttributePairs * 2 + 2];
-    this.buffer[0] = buffer[offset];
-    this.buffer[1] = buffer[offset + 1];
+        int totalAttributePairs = buffer[offset + 1] & 0xFF;
+        this.buffer = new byte[totalAttributePairs * 2 + 2];
+        this.buffer[0] = buffer[offset];
+        this.buffer[1] = buffer[offset + 1];
 
-    int bptr = 2;
-    int ptr = offset + 2;
+        int bptr = 2;
+        int ptr = offset + 2;
 
-    while (totalAttributePairs-- > 0) {
-      Optional<Attribute> opt = Attribute.getAttribute(buffer[ptr], buffer[ptr + 1]);
-      this.buffer[bptr++] = buffer[ptr++];
-      this.buffer[bptr++] = buffer[ptr++];
+        while (totalAttributePairs-- > 0) {
+            Optional<Attribute> opt = Attribute.getAttribute(buffer[ptr], buffer[ptr + 1]);
+            this.buffer[bptr++] = buffer[ptr++];
+            this.buffer[bptr++] = buffer[ptr++];
 
-      if (opt.isPresent()) {
-        Attribute attribute = opt.get();
-        // There has to be a StartFieldAttribute, but it could be anywhere in the list
-        if (attribute.getAttributeType() == Attribute.AttributeType.START_FIELD) {
-          startFieldAttribute = (StartFieldAttribute) attribute;
-        } else {
-          attributes.add(attribute);
+            if (opt.isPresent()) {
+                Attribute attribute = opt.get();
+                // There has to be a StartFieldAttribute, but it could be anywhere in the list
+                if (attribute.getAttributeType() == Attribute.AttributeType.START_FIELD) {
+                    startFieldAttribute = (StartFieldAttribute) attribute;
+                } else {
+                    attributes.add(attribute);
+                }
+            }
         }
-      }
-    }
-    if (startFieldAttribute != null) {
-      startFieldAttribute.setExtended();
-    }
-  }
-
-  @Override
-  public void process(DisplayScreen screen) {
-    Pen pen = screen.getPen();
-    location = pen.getPosition();
-    if (startFieldAttribute != null) {
-      pen.startField(startFieldAttribute);
-    } else {
-      pen.startField(new StartFieldAttribute((byte) 0));
+        if (startFieldAttribute != null) {
+            startFieldAttribute.setExtended();
+        }
     }
 
-    for (Attribute attribute : attributes) {
-      pen.addAttribute(attribute);
+    @Override
+    public void process(DisplayScreen screen) {
+        Pen pen = screen.getPen();
+        location = pen.getPosition();
+        if (startFieldAttribute != null) {
+            pen.startField(startFieldAttribute);
+        } else {
+            pen.startField(new StartFieldAttribute((byte) 0));
+        }
+
+        for (Attribute attribute : attributes) {
+            pen.addAttribute(attribute);
+        }
+
+        pen.moveRight();
     }
 
-    pen.moveRight();
-  }
+    @Override
+    public String toString() {
+        StringBuilder text = new StringBuilder();
+        String locationText = location >= 0 ? String.format("(%04d)", location) : "";
+        if (startFieldAttribute != null) {
+            text.append(String.format("SFE : %s %s", startFieldAttribute, locationText));
+        }
 
-  @Override
-  public String toString() {
-    StringBuilder text = new StringBuilder();
-    String locationText = location >= 0 ? String.format("(%04d)", location) : "";
-    if (startFieldAttribute != null) {
-      text.append(String.format("SFE : %s %s", startFieldAttribute, locationText));
+        for (Attribute attr : attributes) {
+            text.append(String.format("\n      %-34s", attr));
+        }
+
+        return text.toString();
     }
-
-    for (Attribute attr : attributes) {
-      text.append(String.format("\n      %-34s", attr));
-    }
-
-    return text.toString();
-  }
-
 }
