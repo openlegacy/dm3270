@@ -4,21 +4,20 @@ import com.bytezone.dm3270.display.ScreenContext;
 
 public class ExtendedHighlight extends Attribute {
 
-  private static String[] highlights = {"xx", "Blink", "Reverse video", "bb", "Underscore"};
+    private static String[] highlights = {"xx", "Blink", "Reverse video", "bb", "Underscore"};
 
-  public ExtendedHighlight(byte value) {
-    super(AttributeType.HIGHLIGHT, Attribute.XA_HIGHLIGHTING, value);
-  }
+    public ExtendedHighlight(byte value) {
+        super(AttributeType.HIGHLIGHT, Attribute.XA_HIGHLIGHTING, value);
+    }
 
-  @Override
-  public ScreenContext process(ScreenContext defaultContext, ScreenContext currentContext) {
-    return currentContext.withHighlight(attributeValue);
-  }
+    @Override
+    public ScreenContext process(ScreenContext defaultContext, ScreenContext currentContext) {
+        return currentContext.withHighlight(attributeValue);
+    }
 
-  @Override
-  public String toString() {
-    String valueText = attributeValue == 0 ? "Reset" : highlights[attributeValue & 0x0F];
-    return String.format("%-12s : %02X %s", name(), attributeValue, valueText);
-  }
-
+    @Override
+    public String toString() {
+        String valueText = attributeValue == 0 ? "Reset" : highlights[attributeValue & 0x0F];
+        return String.format("%-12s : %02X %s", name(), attributeValue, valueText);
+    }
 }

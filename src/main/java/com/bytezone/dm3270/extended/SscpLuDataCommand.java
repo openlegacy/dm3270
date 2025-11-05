@@ -12,74 +12,72 @@ import java.util.List;
 
 public class SscpLuDataCommand extends Command {
 
-  private final List<Order> orders = new ArrayList<>();
+    private final List<Order> orders = new ArrayList<>();
 
-  public SscpLuDataCommand(byte[] buffer, int offset, int length, Charset charset) {
-    super(buffer, offset, length);
+    public SscpLuDataCommand(byte[] buffer, int offset, int length, Charset charset) {
+        super(buffer, offset, length);
 
-    int ptr = offset;
-    Order previousOrder = null;
+        int ptr = offset;
+        Order previousOrder = null;
 
-    int max = offset + length;
-    while (ptr < max) {
-      Order order = Order.getOrder(buffer, ptr, max, charset);
+        int max = offset + length;
+        while (ptr < max) {
+            Order order = Order.getOrder(buffer, ptr, max, charset);
 
-      if (order.matchesPreviousOrder(previousOrder)) {
-        previousOrder.incrementDuplicates();           // and discard this Order
-      } else {
-        orders.add(order);
-        previousOrder = order;
-      }
+            if (order.matchesPreviousOrder(previousOrder)) {
+                previousOrder.incrementDuplicates(); // and discard this Order
+            } else {
+                orders.add(order);
+                previousOrder = order;
+            }
 
-      ptr += order.size();
-    }
-    byte[] insertCursorBuffer = {Order.INSERT_CURSOR};
-    orders.add(new InsertCursorOrder(insertCursorBuffer, 0));
-  }
-
-  @Override
-  public void process(Screen screen) {
-    screen.setCurrentScreen(ScreenOption.DEFAULT);
-    screen.lockKeyboard("Erase Write");
-    screen.clearScreen(ScreenOption.DEFAULT);
-    screen.setSscpLuData();
-
-    if (orders.size() > 0) {
-      for (Order order : orders) {
-        order.process(screen);
-      }
-
-      screen.buildFields();
-
-      screen.resetInsertMode();
-      screen.restoreKeyboard();
-
-      screen.draw();
+            ptr += order.size();
+        }
+        byte[] insertCursorBuffer = {Order.INSERT_CURSOR};
+        orders.add(new InsertCursorOrder(insertCursorBuffer, 0));
     }
 
-  }
+    @Override
+    public void process(Screen screen) {
+        screen.setCurrentScreen(ScreenOption.DEFAULT);
+        screen.lockKeyboard("Erase Write");
+        screen.clearScreen(ScreenOption.DEFAULT);
+        screen.setSscpLuData();
 
-  @Override
-  public String getName() {
-    return "SSCP_LU_DATA";
-  }
+        if (orders.size() > 0) {
+            for (Order order : orders) {
+                order.process(screen);
+            }
 
-  @Override
-  public String toString() {
-    StringBuilder text = new StringBuilder();
-    text.append(getName());
+            screen.buildFields();
 
-    // if the list begins with a TextOrder then tab out the missing columns
-    if (orders.size() > 0 && orders.get(0) instanceof TextOrder) {
-      text.append(String.format("%40s", ""));
+            screen.resetInsertMode();
+            screen.restoreKeyboard();
+
+            screen.draw();
+        }
     }
 
-    for (Order order : orders) {
-      String fmt = (order.isText()) ? "%s" : "%n%-40s";
-      text.append(String.format(fmt, order));
+    @Override
+    public String getName() {
+        return "SSCP_LU_DATA";
     }
 
-    return text.toString();
-  }
+    @Override
+    public String toString() {
+        StringBuilder text = new StringBuilder();
+        text.append(getName());
 
+        // if the list begins with a TextOrder then tab out the missing columns
+        if (orders.size() > 0 && orders.get(0) instanceof TextOrder) {
+            text.append(String.format("%40s", ""));
+        }
+
+        for (Order order : orders) {
+            String fmt = (order.isText()) ? "%s" : "%n%-40s";
+            text.append(String.format(fmt, order));
+        }
+
+        return text.toString();
+    }
 }

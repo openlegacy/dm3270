@@ -4,13 +4,12 @@ import com.bytezone.dm3270.display.ScreenContext;
 
 public class ResetAttribute extends Attribute {
 
-  public ResetAttribute(byte value) {
-    super(AttributeType.RESET, XA_RESET, value);
-  }
+    public ResetAttribute(byte value) {
+        super(AttributeType.RESET, XA_RESET, value);
+    }
 
-  @Override
-  public ScreenContext process(ScreenContext defaultContext, ScreenContext currentContext) {
-    return defaultContext;
-  }
-
+    @Override
+    public ScreenContext process(ScreenContext defaultContext, ScreenContext currentContext) {
+        return defaultContext;
+    }
 }

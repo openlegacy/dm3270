@@ -18,118 +18,115 @@ import org.slf4j.LoggerFactory;
 
 public class WriteStructuredFieldCommand extends Command {
 
-  private static final Logger LOG = LoggerFactory.getLogger(WriteStructuredFieldCommand.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WriteStructuredFieldCommand.class);
 
-  private static final String LINE =
-      "\n-------------------------------------------------------------------------";
+    private static final String LINE =
+            "\n-------------------------------------------------------------------------";
 
-  private final List<StructuredField> structuredFields =
-      new ArrayList<>();
-  private final List<Buffer> replies = new ArrayList<>();
-  private final Charset charset;
+    private final List<StructuredField> structuredFields = new ArrayList<>();
+    private final List<Buffer> replies = new ArrayList<>();
+    private final Charset charset;
 
-  public WriteStructuredFieldCommand(byte[] buffer, int offset, int length, Charset charset) {
-    super(buffer, offset, length);
-    this.charset = charset;
+    public WriteStructuredFieldCommand(byte[] buffer, int offset, int length, Charset charset) {
+        super(buffer, offset, length);
+        this.charset = charset;
 
-    assert buffer[offset] == Command.WRITE_STRUCTURED_FIELD_11
-        || buffer[offset] == Command.WRITE_STRUCTURED_FIELD_F3;
+        assert buffer[offset] == Command.WRITE_STRUCTURED_FIELD_11
+                || buffer[offset] == Command.WRITE_STRUCTURED_FIELD_F3;
 
-    int ptr = offset + 1;
-    int max = offset + length;
+        int ptr = offset + 1;
+        int max = offset + length;
 
-    while (ptr < max) {
-      int size = Buffer.unsignedShort(buffer, ptr) - 2;
-      ptr += 2;
+        while (ptr < max) {
+            int size = Buffer.unsignedShort(buffer, ptr) - 2;
+            ptr += 2;
 
-      switch (buffer[ptr]) {
-        // wrapper for original write commands - W. EW, EWA, EAU
-        case StructuredField.OUTBOUND_3270DS:
-          structuredFields.add(new Outbound3270DS(buffer, ptr, size, charset));
-          break;
+            switch (buffer[ptr]) {
+                    // wrapper for original write commands - W. EW, EWA, EAU
+                case StructuredField.OUTBOUND_3270DS:
+                    structuredFields.add(new Outbound3270DS(buffer, ptr, size, charset));
+                    break;
 
-        // wrapper for original read commands - RB, RM, RMA
-        case StructuredField.READ_PARTITION:
-          structuredFields.add(new ReadPartitionSF(buffer, ptr, size, charset));
-          break;
+                    // wrapper for original read commands - RB, RM, RMA
+                case StructuredField.READ_PARTITION:
+                    structuredFields.add(new ReadPartitionSF(buffer, ptr, size, charset));
+                    break;
 
-        case StructuredField.RESET_PARTITION:
-          LOG.warn("SF_RESET_PARTITION (00) not written yet");
-          structuredFields.add(new DefaultStructuredField(buffer, ptr, size, charset));
-          break;
+                case StructuredField.RESET_PARTITION:
+                    LOG.warn("SF_RESET_PARTITION (00) not written yet");
+                    structuredFields.add(new DefaultStructuredField(buffer, ptr, size, charset));
+                    break;
 
-        case StructuredField.SET_REPLY_MODE:
-          structuredFields.add(new SetReplyModeSF(buffer, ptr, size, charset));
-          break;
+                case StructuredField.SET_REPLY_MODE:
+                    structuredFields.add(new SetReplyModeSF(buffer, ptr, size, charset));
+                    break;
 
-        case StructuredField.ACTIVATE_PARTITION:
-          LOG.warn("SF_ACTIVATE_PARTITION (0E) not written yet");
-          structuredFields.add(new DefaultStructuredField(buffer, ptr, size, charset));
-          break;
+                case StructuredField.ACTIVATE_PARTITION:
+                    LOG.warn("SF_ACTIVATE_PARTITION (0E) not written yet");
+                    structuredFields.add(new DefaultStructuredField(buffer, ptr, size, charset));
+                    break;
 
-        case StructuredField.ERASE_RESET:
-          structuredFields.add(new EraseResetSF(buffer, ptr, size, charset));
-          break;
+                case StructuredField.ERASE_RESET:
+                    structuredFields.add(new EraseResetSF(buffer, ptr, size, charset));
+                    break;
 
-        default:
-          structuredFields.add(new DefaultStructuredField(buffer, ptr, size, charset));
-          break;
-      }
+                default:
+                    structuredFields.add(new DefaultStructuredField(buffer, ptr, size, charset));
+                    break;
+            }
 
-      ptr += size;
-    }
-  }
-
-  @Override
-  public void process(Screen screen) {
-    replies.clear();
-
-    for (StructuredField structuredField : structuredFields) {
-      structuredField.process(screen);
-      Optional<Buffer> reply = structuredField.getReply();
-      reply.ifPresent(replies::add);
-    }
-  }
-
-  @Override
-  public Optional<Buffer> getReply() {
-    if (replies.size() == 0) {
-      return Optional.empty();
+            ptr += size;
+        }
     }
 
-    if (replies.size() == 1) {
-      return Optional.of(replies.get(0));
+    @Override
+    public void process(Screen screen) {
+        replies.clear();
+
+        for (StructuredField structuredField : structuredFields) {
+            structuredField.process(screen);
+            Optional<Buffer> reply = structuredField.getReply();
+            reply.ifPresent(replies::add);
+        }
     }
 
-    MultiBuffer multiBuffer = new MultiBuffer(charset);
-    for (Buffer reply : replies) {
-      multiBuffer.addBuffer(reply);
+    @Override
+    public Optional<Buffer> getReply() {
+        if (replies.size() == 0) {
+            return Optional.empty();
+        }
+
+        if (replies.size() == 1) {
+            return Optional.of(replies.get(0));
+        }
+
+        MultiBuffer multiBuffer = new MultiBuffer(charset);
+        for (Buffer reply : replies) {
+            multiBuffer.addBuffer(reply);
+        }
+
+        return Optional.of(multiBuffer);
     }
 
-    return Optional.of(multiBuffer);
-  }
-
-  @Override
-  public String getName() {
-    return "Write SF";
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder text =
-        new StringBuilder(String.format("WSF (%d):", structuredFields.size()));
-
-    for (StructuredField sf : structuredFields) {
-      text.append(LINE);
-      text.append("\n");
-      text.append(sf);
+    @Override
+    public String getName() {
+        return "Write SF";
     }
 
-    if (structuredFields.size() > 0) {
-      text.append(LINE);
+    @Override
+    public String toString() {
+        StringBuilder text = new StringBuilder(String.format("WSF (%d):", structuredFields.size()));
+
+        for (StructuredField sf : structuredFields) {
+            text.append(LINE);
+            text.append("\n");
+            text.append(sf);
+        }
+
+        if (structuredFields.size() > 0) {
+            text.append(LINE);
+        }
+
+        return text.toString();
     }
-
-    return text.toString();
-  }
-
 }

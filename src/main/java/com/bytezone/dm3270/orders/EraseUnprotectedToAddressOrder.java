@@ -6,26 +6,25 @@ import org.slf4j.LoggerFactory;
 
 public class EraseUnprotectedToAddressOrder extends Order {
 
-  private static final Logger LOG = LoggerFactory.getLogger(EraseUnprotectedToAddressOrder.class);
+    private static final Logger LOG = LoggerFactory.getLogger(EraseUnprotectedToAddressOrder.class);
 
-  private final BufferAddress stopAddress;
+    private final BufferAddress stopAddress;
 
-  public EraseUnprotectedToAddressOrder(byte[] buffer, int offset) {
-    assert buffer[offset] == Order.ERASE_UNPROTECTED;
-    stopAddress = new BufferAddress(buffer[offset + 1], buffer[offset + 2]);
+    public EraseUnprotectedToAddressOrder(byte[] buffer, int offset) {
+        assert buffer[offset] == Order.ERASE_UNPROTECTED;
+        stopAddress = new BufferAddress(buffer[offset + 1], buffer[offset + 2]);
 
-    this.buffer = new byte[3];
-    System.arraycopy(buffer, offset, this.buffer, 0, this.buffer.length);
-  }
+        this.buffer = new byte[3];
+        System.arraycopy(buffer, offset, this.buffer, 0, this.buffer.length);
+    }
 
-  @Override
-  public void process(DisplayScreen screen) {
-    LOG.warn("EraseUnprotectedToAddress not finished");
-  }
+    @Override
+    public void process(DisplayScreen screen) {
+        LOG.warn("EraseUnprotectedToAddress not finished");
+    }
 
-  @Override
-  public String toString() {
-    return "EUA : " + stopAddress;
-  }
-
+    @Override
+    public String toString() {
+        return "EUA : " + stopAddress;
+    }
 }

@@ -9,48 +9,49 @@ import java.time.format.DateTimeFormatter;
 
 public class SessionRecord {
 
-  private static final DateTimeFormatter FORMATTER =
-      DateTimeFormatter.ofPattern("dd MMM uuuu HH:mm:ss.S");
-  private final ReplyBuffer message;
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("dd MMM uuuu HH:mm:ss.S");
+    private final ReplyBuffer message;
 
-  private final TelnetSocket.Source source;
-  private final LocalDateTime dateTime;
+    private final TelnetSocket.Source source;
+    private final LocalDateTime dateTime;
 
-  public enum SessionRecordType {
-    TELNET, TN3270, TN3270E
-  }
-
-  public SessionRecord(ReplyBuffer message, TelnetSocket.Source source, LocalDateTime dateTime) {
-    this.message = message;
-    this.source = source;
-    this.dateTime = dateTime;
-  }
-
-  public boolean isCommand() {
-    return message instanceof Command || message instanceof TN3270ExtendedCommand;
-  }
-
-  public Command getCommand() {
-    if (message instanceof Command) {
-      return (Command) message;
+    public enum SessionRecordType {
+        TELNET,
+        TN3270,
+        TN3270E
     }
-    if (message instanceof TN3270ExtendedCommand) {
-      return ((TN3270ExtendedCommand) message).getCommand();
+
+    public SessionRecord(ReplyBuffer message, TelnetSocket.Source source, LocalDateTime dateTime) {
+        this.message = message;
+        this.source = source;
+        this.dateTime = dateTime;
     }
-    return null;
-  }
 
-  public byte[] getBuffer() {
-    return message.getData();
-  }
+    public boolean isCommand() {
+        return message instanceof Command || message instanceof TN3270ExtendedCommand;
+    }
 
-  public int size() {
-    return message.size();
-  }
+    public Command getCommand() {
+        if (message instanceof Command) {
+            return (Command) message;
+        }
+        if (message instanceof TN3270ExtendedCommand) {
+            return ((TN3270ExtendedCommand) message).getCommand();
+        }
+        return null;
+    }
 
-  @Override
-  public String toString() {
-    return String.format("%s : %s", source, FORMATTER.format(dateTime));
-  }
+    public byte[] getBuffer() {
+        return message.getData();
+    }
 
+    public int size() {
+        return message.size();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s : %s", source, FORMATTER.format(dateTime));
+    }
 }

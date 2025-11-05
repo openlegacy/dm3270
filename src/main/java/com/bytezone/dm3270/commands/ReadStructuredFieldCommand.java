@@ -28,131 +28,129 @@ import org.slf4j.LoggerFactory;
 
 public class ReadStructuredFieldCommand extends Command {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ReadStructuredFieldCommand.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReadStructuredFieldCommand.class);
 
-  private static final String SEPARATOR =
-      "\n-------------------------------------------------------------------------";
+    private static final String SEPARATOR =
+            "\n-------------------------------------------------------------------------";
 
-  private final List<StructuredField> structuredFields = new ArrayList<>();
+    private final List<StructuredField> structuredFields = new ArrayList<>();
 
-  private ScreenDimensions screenDimensions;
+    private ScreenDimensions screenDimensions;
 
-  public ReadStructuredFieldCommand(TelnetState telnetState, Charset charset) {
-    this(buildReply(telnetState), charset);
-  }
-
-  public ReadStructuredFieldCommand(List<ReplyType> queryList, TelnetState telnetState,
-      Charset charset) {
-    this(buildReply(queryList, telnetState), charset);
-  }
-
-  private ReadStructuredFieldCommand(byte[] buffer, Charset charset) {
-    this(buffer, 0, buffer.length, charset);
-  }
-
-  public ReadStructuredFieldCommand(byte[] buffer, int offset, int length, Charset charset) {
-    super(buffer, offset, length);
-
-    assert data[0] == AIDCommand.AID_STRUCTURED_FIELD;
-
-    int ptr = 1;
-    int max = data.length;
-
-    List<QueryReplyField> replies = new ArrayList<>();
-    while (ptr < max) {
-      int size = Buffer.unsignedShort(data, ptr) - 2;
-      ptr += 2;
-
-      switch (data[ptr]) {
-        case StructuredField.QUERY_REPLY:
-          QueryReplySF queryReply = new QueryReplySF(data, ptr, size, charset);
-          structuredFields.add(queryReply);
-          replies.add(queryReply.getQueryReplyField());
-          break;
-
-        default:
-          LOG.warn("Unknown Structured Field: {}", Buffer.toHex(data, ptr, 1));
-          structuredFields.add(new DefaultStructuredField(data, ptr, size, charset));
-      }
-      ptr += size;
+    public ReadStructuredFieldCommand(TelnetState telnetState, Charset charset) {
+        this(buildReply(telnetState), charset);
     }
 
-    if (replies.size() > 0) {
-      for (QueryReplyField reply : replies) {
-        reply.addReplyFields(replies);         // allow each QRF to see all the others
-        if (screenDimensions == null && reply instanceof UsableArea) {
-          screenDimensions = ((UsableArea) reply).getScreenDimensions();
+    public ReadStructuredFieldCommand(
+            List<ReplyType> queryList, TelnetState telnetState, Charset charset) {
+        this(buildReply(queryList, telnetState), charset);
+    }
+
+    private ReadStructuredFieldCommand(byte[] buffer, Charset charset) {
+        this(buffer, 0, buffer.length, charset);
+    }
+
+    public ReadStructuredFieldCommand(byte[] buffer, int offset, int length, Charset charset) {
+        super(buffer, offset, length);
+
+        assert data[0] == AIDCommand.AID_STRUCTURED_FIELD;
+
+        int ptr = 1;
+        int max = data.length;
+
+        List<QueryReplyField> replies = new ArrayList<>();
+        while (ptr < max) {
+            int size = Buffer.unsignedShort(data, ptr) - 2;
+            ptr += 2;
+
+            switch (data[ptr]) {
+                case StructuredField.QUERY_REPLY:
+                    QueryReplySF queryReply = new QueryReplySF(data, ptr, size, charset);
+                    structuredFields.add(queryReply);
+                    replies.add(queryReply.getQueryReplyField());
+                    break;
+
+                default:
+                    LOG.warn("Unknown Structured Field: {}", Buffer.toHex(data, ptr, 1));
+                    structuredFields.add(new DefaultStructuredField(data, ptr, size, charset));
+            }
+            ptr += size;
         }
-      }
-    }
-  }
 
-  private static byte[] buildReply(TelnetState telnetState) {
-    return buildReplyBytes(buildAvailableReplyFields(telnetState));
-  }
-
-  private static byte[] buildReply(List<ReplyType> queryList, TelnetState telnetState) {
-    Map<ReplyType, QueryReplyField> replyFields = buildAvailableReplyFields(telnetState).stream()
-        .collect(Collectors.toMap(QueryReplyField::getReplyType, r -> r));
-    return buildReplyBytes(queryList.stream()
-        .map(replyFields::get)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList()));
-  }
-
-  private static List<QueryReplyField> buildAvailableReplyFields(TelnetState telnetState) {
-    ScreenDimensions screenDimensions = telnetState.getSecondary();
-    return Arrays.asList(new UsableArea(screenDimensions.rows, screenDimensions.columns),
-        new Color(),
-        new Highlight(),
-        new ImplicitPartition(screenDimensions.rows, screenDimensions.columns),
-        new ReplyModes(),
-        new CharacterSets()
-        );
-  }
-
-  private static byte[] buildReplyBytes(List<QueryReplyField> replyFields) {
-    List<QueryReplyField> replyFieldsWithSummary = new ArrayList<>();
-    replyFieldsWithSummary.add(new Summary(replyFields));
-    replyFieldsWithSummary.addAll(replyFields);
-    int replyLength = replyFieldsWithSummary.stream()
-        .mapToInt(QueryReplyField::replySize)
-        .sum() + 1;
-    byte[] buffer = new byte[replyLength];
-    int ptr = 0;
-    buffer[ptr++] = AIDCommand.AID_STRUCTURED_FIELD;
-    for (QueryReplyField reply : replyFieldsWithSummary) {
-      ptr = reply.packReply(buffer, ptr);
-    }
-    assert ptr == replyLength;
-    return buffer;
-  }
-
-  @Override
-  public void process(Screen screen) {
-  }
-
-  @Override
-  public String getName() {
-    return "Read SF";
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder text =
-        new StringBuilder(String.format("RSF (%d):", structuredFields.size()));
-
-    for (StructuredField sf : structuredFields) {
-      text.append(SEPARATOR);
-      text.append("\n");
-      text.append(sf);
+        if (replies.size() > 0) {
+            for (QueryReplyField reply : replies) {
+                reply.addReplyFields(replies); // allow each QRF to see all the others
+                if (screenDimensions == null && reply instanceof UsableArea) {
+                    screenDimensions = ((UsableArea) reply).getScreenDimensions();
+                }
+            }
+        }
     }
 
-    if (structuredFields.size() > 0) {
-      text.append(SEPARATOR);
+    private static byte[] buildReply(TelnetState telnetState) {
+        return buildReplyBytes(buildAvailableReplyFields(telnetState));
     }
 
-    return text.toString();
-  }
+    private static byte[] buildReply(List<ReplyType> queryList, TelnetState telnetState) {
+        Map<ReplyType, QueryReplyField> replyFields =
+                buildAvailableReplyFields(telnetState).stream()
+                        .collect(Collectors.toMap(QueryReplyField::getReplyType, r -> r));
+        return buildReplyBytes(
+                queryList.stream()
+                        .map(replyFields::get)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
+    }
 
+    private static List<QueryReplyField> buildAvailableReplyFields(TelnetState telnetState) {
+        ScreenDimensions screenDimensions = telnetState.getSecondary();
+        return Arrays.asList(
+                new UsableArea(screenDimensions.rows, screenDimensions.columns),
+                new Color(),
+                new Highlight(),
+                new ImplicitPartition(screenDimensions.rows, screenDimensions.columns),
+                new ReplyModes(),
+                new CharacterSets());
+    }
+
+    private static byte[] buildReplyBytes(List<QueryReplyField> replyFields) {
+        List<QueryReplyField> replyFieldsWithSummary = new ArrayList<>();
+        replyFieldsWithSummary.add(new Summary(replyFields));
+        replyFieldsWithSummary.addAll(replyFields);
+        int replyLength =
+                replyFieldsWithSummary.stream().mapToInt(QueryReplyField::replySize).sum() + 1;
+        byte[] buffer = new byte[replyLength];
+        int ptr = 0;
+        buffer[ptr++] = AIDCommand.AID_STRUCTURED_FIELD;
+        for (QueryReplyField reply : replyFieldsWithSummary) {
+            ptr = reply.packReply(buffer, ptr);
+        }
+        assert ptr == replyLength;
+        return buffer;
+    }
+
+    @Override
+    public void process(Screen screen) {}
+
+    @Override
+    public String getName() {
+        return "Read SF";
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder text = new StringBuilder(String.format("RSF (%d):", structuredFields.size()));
+
+        for (StructuredField sf : structuredFields) {
+            text.append(SEPARATOR);
+            text.append("\n");
+            text.append(sf);
+        }
+
+        if (structuredFields.size() > 0) {
+            text.append(SEPARATOR);
+        }
+
+        return text.toString();
+    }
 }

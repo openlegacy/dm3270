@@ -4,9 +4,11 @@ import java.time.LocalDateTime;
 
 public interface BufferListener {
 
-  void listen(TelnetSocket.Source targetRole, byte[] message, LocalDateTime dateTime,
-              boolean genuine);
+    void listen(
+            TelnetSocket.Source targetRole,
+            byte[] message,
+            LocalDateTime dateTime,
+            boolean genuine);
 
-  void close();
-
+    void close();
 }

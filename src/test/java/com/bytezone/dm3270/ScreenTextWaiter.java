@@ -10,61 +10,61 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ScreenTextWaiter extends ConditionWaiter implements KeyboardStatusListener,
-    CursorMoveListener, ScreenChangeListener {
+public class ScreenTextWaiter extends ConditionWaiter
+        implements KeyboardStatusListener, CursorMoveListener, ScreenChangeListener {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ScreenTextWaiter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ScreenTextWaiter.class);
 
-  private final String text;
-  private boolean matched;
+    private final String text;
+    private boolean matched;
 
-  public ScreenTextWaiter(String text, TerminalClient client, ScheduledExecutorService stableTimeoutExecutor) {
-    super(client, stableTimeoutExecutor);
-    this.text = text;
-    client.addCursorMoveListener(this);
-    client.addKeyboardStatusListener(this);
-    client.addScreenChangeListener(this);
-    checkIfScreenMatchesCondition();
-    if (matched) {
-      startStablePeriod();
+    public ScreenTextWaiter(
+            String text, TerminalClient client, ScheduledExecutorService stableTimeoutExecutor) {
+        super(client, stableTimeoutExecutor);
+        this.text = text;
+        client.addCursorMoveListener(this);
+        client.addKeyboardStatusListener(this);
+        client.addScreenChangeListener(this);
+        checkIfScreenMatchesCondition();
+        if (matched) {
+            startStablePeriod();
+        }
     }
-  }
 
-  @Override
-  public void keyboardStatusChanged(KeyboardStatusChangedEvent keyboardStatusChangedEvent) {
-    handleReceivedEvent("keyboardStatusChanged");
-  }
-
-  @Override
-  public void cursorMoved(int i, int i1, Field field) {
-    handleReceivedEvent("cursorMoved");
-  }
-
-  @Override
-  public void screenChanged(ScreenWatcher screenWatcher) {
-    checkIfScreenMatchesCondition();
-    handleReceivedEvent("screenChanged");
-  }
-
-  private void handleReceivedEvent(String event) {
-    if (matched) {
-      LOG.debug("Restart screen text stable period since received event {}", event);
-      startStablePeriod();
+    @Override
+    public void keyboardStatusChanged(KeyboardStatusChangedEvent keyboardStatusChangedEvent) {
+        handleReceivedEvent("keyboardStatusChanged");
     }
-  }
 
-  private void checkIfScreenMatchesCondition() {
-    if (client.getScreenText().contains(text)) {
-      LOG.debug("Found matching text in screen, now waiting for silent period.");
-      matched = true;
+    @Override
+    public void cursorMoved(int i, int i1, Field field) {
+        handleReceivedEvent("cursorMoved");
     }
-  }
 
-  protected void stop() {
-    super.stop();
-    client.removeCursorMoveListener(this);
-    client.removeKeyboardStatusListener(this);
-    client.removeScreenChangeListener(this);
-  }
+    @Override
+    public void screenChanged(ScreenWatcher screenWatcher) {
+        checkIfScreenMatchesCondition();
+        handleReceivedEvent("screenChanged");
+    }
 
+    private void handleReceivedEvent(String event) {
+        if (matched) {
+            LOG.debug("Restart screen text stable period since received event {}", event);
+            startStablePeriod();
+        }
+    }
+
+    private void checkIfScreenMatchesCondition() {
+        if (client.getScreenText().contains(text)) {
+            LOG.debug("Found matching text in screen, now waiting for silent period.");
+            matched = true;
+        }
+    }
+
+    protected void stop() {
+        super.stop();
+        client.removeCursorMoveListener(this);
+        client.removeKeyboardStatusListener(this);
+        client.removeScreenChangeListener(this);
+    }
 }

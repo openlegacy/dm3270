@@ -4,8 +4,7 @@ import java.util.Optional;
 
 public interface ReplyBuffer extends Buffer {
 
-  Optional<Buffer> getReply();
+    Optional<Buffer> getReply();
 
-  void setReply(Buffer reply);
-
+    void setReply(Buffer reply);
 }
