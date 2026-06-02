@@ -31,6 +31,7 @@ public class TerminalClient {
     private SocketFactory socketFactory = SocketFactory.getDefault();
     private int connectionTimeoutMillis;
     private final ConnectionListenerBroadcast connectionListenerBroadcast;
+    private final LokiNetworkRecorder lokiNetworkRecorder = new LokiNetworkRecorder();
 
     /**
      * Creates a new terminal client with given model and screen dimensions.
@@ -87,6 +88,34 @@ public class TerminalClient {
     }
 
     /**
+     * Sets the path to a Loki JSON file for recording TN3270 network traffic. Must be called before
+     * {@link #connect(String, int)}. When null or empty, recording is disabled.
+     *
+     * @param recordingFile path to the output file, or null to disable recording
+     */
+    public void setRecordingFile(String recordingFile) {
+        ensureNotConnected("setRecordingFile");
+        lokiNetworkRecorder.setRecordingFile(recordingFile);
+    }
+
+    /**
+     * Sets whether the session uses SSL/TLS. Must match the {@link SocketFactory} used for
+     * recording. Must be called before {@link #connect(String, int)}.
+     *
+     * @param isSsl true when using an SSL socket factory
+     */
+    public void setRecordingSsl(boolean isSsl) {
+        ensureNotConnected("setRecordingSsl");
+        lokiNetworkRecorder.setRecordingSsl(isSsl);
+    }
+
+    private void ensureNotConnected(String operation) {
+        if (consolePane != null) {
+            throw new IllegalStateException(operation + " must be called before connect()");
+        }
+    }
+
+    /**
      * Adds a class to handle general exception handler.
      *
      * @param connectionListener a class to handle exceptions. If none is provided then exceptions
@@ -113,6 +142,7 @@ public class TerminalClient {
      * @param port port where the terminal server is listening for connections.
      */
     public void connect(String host, int port) {
+        lokiNetworkRecorder.startIfNeeded();
         screen.lockKeyboard("connect");
         consolePane =
                 new ConsolePane(screen, new Site(host, port, usesExtended3270), socketFactory);
@@ -492,6 +522,9 @@ public class TerminalClient {
      * @throws InterruptedException thrown when the disconnect is interrupted.
      */
     public void disconnect() throws InterruptedException {
-        consolePane.disconnect();
+        lokiNetworkRecorder.finishAndSave();
+        if (consolePane != null) {
+            consolePane.disconnect();
+        }
     }
 }

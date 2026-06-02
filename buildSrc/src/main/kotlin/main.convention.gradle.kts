@@ -9,8 +9,8 @@ plugins {
 group = "com.blazemeter"
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
+  sourceCompatibility = JavaVersion.VERSION_11
+  targetCompatibility = JavaVersion.VERSION_11
 }
 
 val artifactoryOpsUser: String? = System.getenv("ARTIFACTORY_OL_OPS_USER")
@@ -74,7 +74,7 @@ spotless {
 
 kotlin {
   compilerOptions {
-    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
   }
 }
 
@@ -106,7 +106,7 @@ sourceSets {
 tasks.withType<JavaCompile> {
   options.isIncremental = false
   options.encoding = "UTF-8"
-  options.release.set(8)
+  options.release.set(11)
 }
 
 tasks.test {
@@ -143,8 +143,7 @@ afterEvaluate {
         artifactId = project.name
         version = project.version.toString()
 
-        // Add the main JAR artifact
-        artifact(tasks.named("jar").get())
+        from(components["java"])
 
         // Add source JAR
         artifact(sourcesJar)
