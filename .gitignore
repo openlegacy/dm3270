@@ -83,3 +83,6 @@ typings/
 **/sap-rpc-autoconfiguration/lib
 **/flow-spring-sap-server-autoconfiguration/lib
 **/flow-spring-sap-idoc-server-autoconfiguration/lib/
+
+# AI
+.cursor

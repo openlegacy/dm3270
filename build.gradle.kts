@@ -4,23 +4,28 @@ plugins {
 
 version = project.findProperty("version") as String
 
-val slf4jVersion: String by project
-val junitVersion: String by project
-val wireshamVersion: String by project
-val assertjVersion: String by project
 val guavaVersion: String by project
-val mockitoVersion: String by project
 
 dependencies {
-    // Main dependencies
-    implementation("org.slf4j:slf4j-api:$slf4jVersion")
+    implementation(libs.slf4j.api)
+    // we are using a compile only dependency to overcome a cyrclic references in core,
+    // because this library is used by ol3270
+    // if any other module will use this library, it also needs to include a loki-tcp-recorder
+    compileOnly(libs.openlegacy.loki.tcp.recorder)
 
-    // Test dependencies
-    testImplementation("junit:junit:$junitVersion")
-    testImplementation("us.abstracta:wiresham:$wireshamVersion")
-    testImplementation("org.assertj:assertj-core:$assertjVersion")
+    // test
+    testImplementation(libs.openlegacy.loki.tcp.recorder)
+    testImplementation(libs.junit.jupiter.engine.java11)
+    testImplementation("org.junit.jupiter:junit-jupiter-params:${libs.versions.junitJupiterJava11.get()}")
+    testRuntimeOnly(libs.junit.platform.launcher.java11)
+    testImplementation(libs.assertj.core)
     testImplementation("com.google.guava:guava:$guavaVersion")
-    testImplementation("org.mockito:mockito-core:$mockitoVersion")
+    testImplementation(libs.mockito.core)
+    testImplementation("org.mockito:mockito-junit-jupiter:${libs.versions.mockito.get()}")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.jar {
