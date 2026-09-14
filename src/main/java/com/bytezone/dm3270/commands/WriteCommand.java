@@ -75,6 +75,12 @@ public class WriteCommand extends Command {
             cursor.moveTo(cursorLocation);
             screen.buildFields();
             screenDrawRequired = true;
+        } else if (eraseWrite) {
+            // Erase/Write with no orders is the CICS CLEAR / blank command screen.
+            // Fields still need to be built so the first command line is typeable.
+            cursor.moveTo(cursorLocation);
+            screen.buildFields();
+            screenDrawRequired = true;
         }
 
         if (writeControlCharacter != null) {

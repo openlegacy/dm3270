@@ -40,6 +40,8 @@ public class FieldManager {
     public void buildFields(ScreenPosition[] screenPositions) {
         reset();
 
+        CicsCommandLineFields.apply(screenPositions, screenDimensions);
+
         // to avoid inefficiency when coping and adding in a
         // CopyOnWriteArrayList we use this list to add all at once;
         List<Field> auxFields = new ArrayList<>();
