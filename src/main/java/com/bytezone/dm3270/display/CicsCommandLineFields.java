@@ -66,15 +66,11 @@ final class CicsCommandLineFields {
 
         boolean hasStartFieldInCommandArea = false;
         boolean commandAreaAllNull = true;
-        StartFieldAttribute ownerOfZero = null;
 
         for (int i = 0; i < screenPositions.length; i++) {
             ScreenPosition position = screenPositions[i];
-            if (position.isStartField()) {
-                ownerOfZero = position.getStartFieldAttribute();
-                if (i < commandPositions) {
-                    hasStartFieldInCommandArea = true;
-                }
+            if (position.isStartField() && i < commandPositions) {
+                hasStartFieldInCommandArea = true;
             }
             if (i < commandPositions && !position.isNull()) {
                 commandAreaAllNull = false;
@@ -87,54 +83,19 @@ final class CicsCommandLineFields {
         boolean lastIsSf = lastPosition.isStartField();
         boolean commandFieldStartsAtZero =
                 lastIsSf && !lastPosition.getStartFieldAttribute().isProtected();
-        boolean positionZeroAlreadyUnprotected = ownerOfZero != null && !ownerOfZero.isProtected();
 
-        boolean needed =
-                needsUnprotectedCommandField(
-                        hasStartFieldInCommandArea, commandAreaAllNull, commandFieldStartsAtZero);
-        int lastIsSfFlag = lastIsSf ? 1 : 0;
-        int attributePosition =
-                needed ? syntheticAttributePosition(screenPositions.length, lastIsSf) : -1;
-        boolean injected = false;
-        if (needed
-                && attributePosition >= 0
-                && !screenPositions[attributePosition].isStartField()) {
-            screenPositions[attributePosition].setStartField(
-                    new StartFieldAttribute(UNPROTECTED_ALPHANUMERIC));
-            injected = true;
-            LOG.debug(
-                    "OC-2083: synthetic unprotected field at buffer position {}",
-                    attributePosition);
+        if (!needsUnprotectedCommandField(
+                hasStartFieldInCommandArea, commandAreaAllNull, commandFieldStartsAtZero)) {
+            return;
         }
-        // #region agent log
-        try {
-            java.nio.file.Files.writeString(
-                    java.nio.file.Path.of("c:/Users/roimor/git/ol-terminal/debug-9970fd.log"),
-                    "{\"sessionId\":\"9970fd\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\",\"location\":\"CicsCommandLineFields.java:apply\",\"message\":\"cics command field apply\",\"data\":{\"needed\":"
-                            + needed
-                            + ",\"injected\":"
-                            + injected
-                            + ",\"hasSfInCmd\":"
-                            + hasStartFieldInCommandArea
-                            + ",\"allNull\":"
-                            + commandAreaAllNull
-                            + ",\"zeroUnprot\":"
-                            + positionZeroAlreadyUnprotected
-                            + ",\"startsAtZero\":"
-                            + commandFieldStartsAtZero
-                            + ",\"attrPos\":"
-                            + attributePosition
-                            + ",\"lastIsSf\":"
-                            + lastIsSfFlag
-                            + ",\"buf\":"
-                            + screenPositions.length
-                            + "},\"timestamp\":"
-                            + System.currentTimeMillis()
-                            + "}\n",
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {
+
+        int attributePosition = syntheticAttributePosition(screenPositions.length, lastIsSf);
+        if (screenPositions[attributePosition].isStartField()) {
+            return;
         }
-        // #endregion
+
+        screenPositions[attributePosition].setStartField(
+                new StartFieldAttribute(UNPROTECTED_ALPHANUMERIC));
+        LOG.debug("OC-2083: synthetic unprotected field at buffer position {}", attributePosition);
     }
 }
