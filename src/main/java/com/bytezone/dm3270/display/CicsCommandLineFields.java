@@ -36,12 +36,16 @@ final class CicsCommandLineFields {
      *     start-field, so firstLocation is 0 (row 1 column 1). A wrapping unprotected field that
      *     starts later on the last row still needs a synthetic attribute: otherwise firstLocation
      *     stays on row 24 and the command line at 1,1 is not a field start.
+     * @param hasStartFieldAfterCommandArea true when a later field (typically a protected status
+     *     line) exists and would wrap onto the blank command area. A fully unformatted screen must
+     *     stay unformatted so AID packing is unchanged.
      */
     static boolean needsUnprotectedCommandField(
             boolean hasStartFieldInCommandArea,
             boolean commandAreaAllNull,
-            boolean commandFieldStartsAtZero) {
-        if (hasStartFieldInCommandArea || !commandAreaAllNull) {
+            boolean commandFieldStartsAtZero,
+            boolean hasStartFieldAfterCommandArea) {
+        if (hasStartFieldInCommandArea || !commandAreaAllNull || !hasStartFieldAfterCommandArea) {
             return false;
         }
         return !commandFieldStartsAtZero;
@@ -65,12 +69,17 @@ final class CicsCommandLineFields {
         }
 
         boolean hasStartFieldInCommandArea = false;
+        boolean hasStartFieldAfterCommandArea = false;
         boolean commandAreaAllNull = true;
 
         for (int i = 0; i < screenPositions.length; i++) {
             ScreenPosition position = screenPositions[i];
-            if (position.isStartField() && i < commandPositions) {
-                hasStartFieldInCommandArea = true;
+            if (position.isStartField()) {
+                if (i < commandPositions) {
+                    hasStartFieldInCommandArea = true;
+                } else {
+                    hasStartFieldAfterCommandArea = true;
+                }
             }
             if (i < commandPositions && !position.isNull()) {
                 commandAreaAllNull = false;
@@ -85,7 +94,10 @@ final class CicsCommandLineFields {
                 lastIsSf && !lastPosition.getStartFieldAttribute().isProtected();
 
         if (!needsUnprotectedCommandField(
-                hasStartFieldInCommandArea, commandAreaAllNull, commandFieldStartsAtZero)) {
+                hasStartFieldInCommandArea,
+                commandAreaAllNull,
+                commandFieldStartsAtZero,
+                hasStartFieldAfterCommandArea)) {
             return;
         }
 
