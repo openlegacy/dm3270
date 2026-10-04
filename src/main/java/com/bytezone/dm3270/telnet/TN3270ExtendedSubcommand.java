@@ -125,6 +125,9 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
                 TelnetCommand.IAC, TelnetCommand.SB, TN3270E, EXT_DEVICE_TYPE, EXT_REQUEST
             };
             String terminalType = telnetState.doDeviceType();
+            if (telnetState.do3270Extended() && !terminalType.endsWith("-E")) {
+                terminalType = terminalType + "-E";
+            }
             byte[] terminal = terminalType.getBytes(StandardCharsets.US_ASCII);
             byte[] reply = new byte[header.length + terminal.length + 2];
 
@@ -144,9 +147,10 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
                 TN3270E,
                 EXT_FUNCTIONS,
                 EXT_REQUEST,
-                0x00,
-                0x02,
-                0x04,
+                0x00, // BIND-IMAGE
+                0x02, // RESPONSES
+                0x04, // SYSREQ
+                0x05, // CONTENTION-RESOLUTION
                 TelnetCommand.IAC,
                 TelnetCommand.SE
             };

@@ -152,9 +152,12 @@ public class TelnetState implements Runnable {
         LOG.debug("Device Type: {}", deviceType);
         this.deviceType = deviceType;
 
+        String modelName = deviceType.endsWith("-E")
+                ? deviceType.substring(0, deviceType.length() - 2)
+                : deviceType;
         int modelNo = 0;
         for (int i = 2; i <= 5; i++) {
-            if (TERMINAL_TYPES[i].equals(deviceType)) {
+            if (TERMINAL_TYPES[i].equals(modelName)) {
                 modelNo = i;
                 break;
             }
