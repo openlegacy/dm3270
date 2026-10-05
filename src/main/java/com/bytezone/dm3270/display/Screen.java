@@ -51,6 +51,7 @@ public class Screen implements DisplayScreen {
 
     private int insertedCursorPosition = -1;
     private boolean keyboardLocked;
+    private String keyboardLockReason = "";
     private boolean insertMode;
     private boolean readModifiedAll = false;
 
@@ -318,13 +319,25 @@ public class Screen implements DisplayScreen {
         setAID(AIDCommand.NO_AID_SPECIFIED);
         cursor.setVisible(true);
         keyboardLocked = false;
+        keyboardLockReason = "";
         fireKeyboardStatusChange("");
     }
 
     public void lockKeyboard(String keyName) {
         keyboardLocked = true;
+        keyboardLockReason = keyName == null ? "" : keyName;
         fireKeyboardStatusChange(keyName);
         cursor.setVisible(false);
+    }
+
+    /**
+     * Clears a lock taken for a TN3270E BID. A later write replaces that reason, so this does not
+     * unlock a keyboard the host left locked on purpose.
+     */
+    public void releaseBidLock() {
+        if ("BID".equals(keyboardLockReason)) {
+            restoreKeyboard();
+        }
     }
 
     public void resetModified() {
