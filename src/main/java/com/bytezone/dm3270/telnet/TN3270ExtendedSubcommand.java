@@ -17,10 +17,12 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
     private static final byte EXT_FUNCTIONS = 3;
 
     private static final byte EXT_IS = 4;
+    private static final byte EXT_REJECT = 6;
     private static final byte EXT_REQUEST = 7;
     private static final byte EXT_SEND = 8;
 
     private SubType subType;
+    private int rejectReason = -1;
     private String luName = "";
     private List<Function> functions;
     private String functionsList = "";
@@ -28,6 +30,7 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
     private enum SubType {
         IS,
         REQUEST,
+        REJECT,
         DEVICE_TYPE
     }
 
@@ -68,6 +71,12 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
                     if (value == null) {
                         value = new String(buffer, 5, length - 5);
                     }
+                } else if (buffer[4] == EXT_REJECT) {
+                    subType = SubType.REJECT;
+                    if (length > 5) {
+                        rejectReason = buffer[5] & 0xFF;
+                    }
+                    value = rejectReasonText(rejectReason);
                 }
                 break;
 
@@ -104,7 +113,7 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
                 funcList.append("SYSREQ, ");
             } else if (buffer[ptr] == 5) {
                 functions.add(Function.REASON);
-                funcList.append("REASON, ");
+                funcList.append("CONTENTION-RESOLUTION, ");
             } else {
                 throw new InvalidParameterException(
                         String.format("Unknown function: %02X%n", buffer[ptr]));
@@ -120,23 +129,16 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
 
     @Override
     public void process(Screen screen) {
-        if (type == SubcommandType.SEND && subType == SubType.DEVICE_TYPE) {
-            byte[] header = {
-                TelnetCommand.IAC, TelnetCommand.SB, TN3270E, EXT_DEVICE_TYPE, EXT_REQUEST
-            };
-            String terminalType = telnetState.doDeviceType();
-            byte[] terminal = terminalType.getBytes(StandardCharsets.US_ASCII);
-            byte[] reply = new byte[header.length + terminal.length + 2];
-
-            System.arraycopy(header, 0, reply, 0, header.length);
-            System.arraycopy(terminal, 0, reply, header.length, terminal.length);
-            reply[reply.length - 2] = TelnetCommand.IAC;
-            reply[reply.length - 1] = TelnetCommand.SE;
-
-            setReply(new TN3270ExtendedSubcommand(reply, 0, reply.length, telnetState));
+        if (subType == null) {
+            LOG.warn("TN3270E subcommand {} has no subtype", type);
+            return;
         }
 
-        // after the server assigns our device type, request these three functions
+        if (type == SubcommandType.SEND && subType == SubType.DEVICE_TYPE) {
+            requestDeviceType();
+        }
+
+        // after the server assigns our device type, request these functions
         if (type == SubcommandType.DEVICE_TYPE && subType == SubType.IS) {
             byte[] reply = {
                 TelnetCommand.IAC,
@@ -144,9 +146,10 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
                 TN3270E,
                 EXT_FUNCTIONS,
                 EXT_REQUEST,
-                0x00,
-                0x02,
-                0x04,
+                0x00, // BIND-IMAGE
+                0x02, // RESPONSES
+                0x04, // SYSREQ
+                0x05, // CONTENTION-RESOLUTION
                 TelnetCommand.IAC,
                 TelnetCommand.SE
             };
@@ -177,9 +180,56 @@ public class TN3270ExtendedSubcommand extends TelnetSubcommand {
             case DEVICE_TYPE:
                 break;
 
+            case REJECT:
+                LOG.warn("TN3270E device-type rejected: {}", value);
+                if (telnetState.requestExtendedDeviceType()) {
+                    telnetState.declineExtendedDeviceType();
+                    requestDeviceType();
+                }
+                break;
+
             default:
                 LOG.warn("Unknown subtype: {}", subType);
                 break;
+        }
+    }
+
+    private void requestDeviceType() {
+        byte[] header = {
+            TelnetCommand.IAC, TelnetCommand.SB, TN3270E, EXT_DEVICE_TYPE, EXT_REQUEST
+        };
+        String terminalType = telnetState.deviceTypeRequestName();
+        byte[] terminal = terminalType.getBytes(StandardCharsets.US_ASCII);
+        byte[] reply = new byte[header.length + terminal.length + 2];
+
+        System.arraycopy(header, 0, reply, 0, header.length);
+        System.arraycopy(terminal, 0, reply, header.length, terminal.length);
+        reply[reply.length - 2] = TelnetCommand.IAC;
+        reply[reply.length - 1] = TelnetCommand.SE;
+
+        setReply(new TN3270ExtendedSubcommand(reply, 0, reply.length, telnetState));
+    }
+
+    private static String rejectReasonText(int reason) {
+        switch (reason) {
+            case 0:
+                return "CONN-PARTNER";
+            case 1:
+                return "DEVICE-IN-USE";
+            case 2:
+                return "INV-ASSOCIATE";
+            case 3:
+                return "INV-NAME";
+            case 4:
+                return "INV-DEVICE-TYPE";
+            case 5:
+                return "TYPE-NAME-ERROR";
+            case 6:
+                return "UNKNOWN-ERROR";
+            case 7:
+                return "UNSUPPORTED-REQ";
+            default:
+                return String.format("%02X", reason);
         }
     }
 

@@ -26,6 +26,9 @@ public class CommandHeader extends AbstractReplyBuffer {
 
     private static final byte ERR_COND_CLEARED = 0x00;
 
+    /** TN3270E request-flag bit: the host is giving the client permission to send. */
+    private static final byte SEND_DATA = 0x01;
+
     private static final byte RQ_NO_RESPONSE = 0x00;
     private static final byte RQ_ERROR_RESPONSE = 0x01;
     private static final byte RQ_ALWAYS_RESPONSE = 0x02;
@@ -136,8 +139,15 @@ public class CommandHeader extends AbstractReplyBuffer {
         return dataType;
     }
 
+    public boolean isSendData() {
+        return data.length > 1 && (data[1] & SEND_DATA) != 0;
+    }
+
     @Override
     public void process(Screen screen) {
+        if (dataType == DataType.BID) {
+            screen.lockKeyboard("BID");
+        }
         if (responseType == ResponseType.ALWAYS_RESPONSE) {
             byte[] header = new byte[5];
             header[0] = 0x02;

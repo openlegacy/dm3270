@@ -19,6 +19,7 @@ public class TelnetState implements Runnable {
 
     // preferences
     private boolean do3270Extended;
+    private boolean extendedDeviceTypeDeclined;
     private int commandHeaderCount;
     private boolean doBinary;
     private boolean doEOR;
@@ -152,9 +153,13 @@ public class TelnetState implements Runnable {
         LOG.debug("Device Type: {}", deviceType);
         this.deviceType = deviceType;
 
+        String modelName =
+                deviceType.endsWith("-E")
+                        ? deviceType.substring(0, deviceType.length() - 2)
+                        : deviceType;
         int modelNo = 0;
         for (int i = 2; i <= 5; i++) {
-            if (TERMINAL_TYPES[i].equals(deviceType)) {
+            if (TERMINAL_TYPES[i].equals(modelName)) {
                 modelNo = i;
                 break;
             }
@@ -210,6 +215,24 @@ public class TelnetState implements Runnable {
 
     public boolean do3270Extended() {
         return do3270Extended;
+    }
+
+    /** True when the DEVICE-TYPE REQUEST should use the extended (-E) terminal name. */
+    public boolean requestExtendedDeviceType() {
+        return do3270Extended && !extendedDeviceTypeDeclined;
+    }
+
+    /** The host rejected an -E device type. The next request omits the suffix. */
+    public void declineExtendedDeviceType() {
+        extendedDeviceTypeDeclined = true;
+    }
+
+    public String deviceTypeRequestName() {
+        String terminalType = doDeviceType == null ? "" : doDeviceType;
+        if (requestExtendedDeviceType() && !terminalType.endsWith("-E")) {
+            terminalType = terminalType + "-E";
+        }
+        return terminalType;
     }
 
     public boolean doEOR() {

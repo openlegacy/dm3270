@@ -4,6 +4,7 @@ import com.bytezone.dm3270.buffers.Buffer;
 import java.nio.charset.UnsupportedCharsetException;
 
 public enum Charset {
+    CP037,
     CP1025,
     CP1026,
     CP1047,
