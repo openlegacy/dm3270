@@ -109,10 +109,8 @@ public class TelnetListener implements BufferListener, TelnetCommandProcessor {
                 }
 
                 addDataRecord(command, SessionRecord.SessionRecordType.TN3270);
-                if (length <= 0
-                        && currentCommandHeader != null
-                        && currentCommandHeader.isSendData()) {
-                    screen.releaseBidLock();
+                if (length <= 0 && currentCommandHeader != null) {
+                    currentCommandHeader.applyContentionResolution(screen);
                 }
                 break;
 
