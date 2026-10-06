@@ -48,9 +48,7 @@ public class TN3270ExtendedCommand extends AbstractExtendedCommand {
     public void process(Screen screen) {
         commandHeader.process(screen);
         command.process(screen);
-        if (commandHeader.isSendData()) {
-            screen.releaseBidLock();
-        }
+        commandHeader.applyContentionResolution(screen);
     }
 
     @Override

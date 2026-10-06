@@ -26,8 +26,8 @@ public class CommandHeader extends AbstractReplyBuffer {
 
     private static final byte ERR_COND_CLEARED = 0x00;
 
-    /** TN3270E request-flag bit: the host is giving the client permission to send. */
     private static final byte SEND_DATA = 0x01;
+    private static final byte KEYBOARD_RESTORE = 0x02;
 
     private static final byte RQ_NO_RESPONSE = 0x00;
     private static final byte RQ_ERROR_RESPONSE = 0x01;
@@ -140,13 +140,17 @@ public class CommandHeader extends AbstractReplyBuffer {
     }
 
     public boolean isSendData() {
-        return data.length > 1 && (data[1] & SEND_DATA) != 0;
+        return dataType == DataType.TN3270_DATA && (data[1] & SEND_DATA) != 0;
+    }
+
+    public boolean isKeyboardRestore() {
+        return dataType == DataType.TN3270_DATA && (data[1] & KEYBOARD_RESTORE) != 0;
     }
 
     @Override
     public void process(Screen screen) {
         if (dataType == DataType.BID) {
-            screen.lockKeyboard("BID");
+            screen.lockKeyboardForBid();
         }
         if (responseType == ResponseType.ALWAYS_RESPONSE) {
             byte[] header = new byte[5];
@@ -156,6 +160,16 @@ public class CommandHeader extends AbstractReplyBuffer {
             byte[] value = {0x00};
 
             setReply(new ResponseCommand(commandHeader, value, 0, value.length, charset));
+        }
+    }
+
+    /** Applies TN3270E contention flags after the associated 3270 command has been processed. */
+    public void applyContentionResolution(Screen screen) {
+        if (isKeyboardRestore()) {
+            screen.restoreKeyboard();
+        }
+        if (isSendData()) {
+            screen.releaseBidLock();
         }
     }
 

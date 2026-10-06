@@ -51,7 +51,7 @@ public class Screen implements DisplayScreen {
 
     private int insertedCursorPosition = -1;
     private boolean keyboardLocked;
-    private String keyboardLockReason = "";
+    private boolean bidLocked;
     private boolean insertMode;
     private boolean readModifiedAll = false;
 
@@ -317,27 +317,29 @@ public class Screen implements DisplayScreen {
 
     public void restoreKeyboard() {
         setAID(AIDCommand.NO_AID_SPECIFIED);
-        cursor.setVisible(true);
         keyboardLocked = false;
-        keyboardLockReason = "";
+        cursor.setVisible(!bidLocked);
         fireKeyboardStatusChange("");
     }
 
     public void lockKeyboard(String keyName) {
         keyboardLocked = true;
-        keyboardLockReason = keyName == null ? "" : keyName;
         fireKeyboardStatusChange(keyName);
         cursor.setVisible(false);
     }
 
-    /**
-     * Clears a lock taken for a TN3270E BID. A later write replaces that reason, so this does not
-     * unlock a keyboard the host left locked on purpose.
-     */
+    /** Inhibits input after accepting a TN3270E BID until the host returns send state. */
+    public void lockKeyboardForBid() {
+        bidLocked = true;
+        cursor.setVisible(false);
+        fireKeyboardStatusChange("BID");
+    }
+
+    /** Releases TN3270E send inhibition without overriding the normal 3270 keyboard state. */
     public void releaseBidLock() {
-        if ("BID".equals(keyboardLockReason)) {
-            restoreKeyboard();
-        }
+        bidLocked = false;
+        cursor.setVisible(!keyboardLocked);
+        fireKeyboardStatusChange("");
     }
 
     public void resetModified() {
@@ -345,7 +347,7 @@ public class Screen implements DisplayScreen {
     }
 
     public boolean isKeyboardLocked() {
-        return keyboardLocked;
+        return keyboardLocked || bidLocked;
     }
 
     // ---------------------------------------------------------------------------------//
@@ -354,7 +356,7 @@ public class Screen implements DisplayScreen {
 
     private void fireKeyboardStatusChange(String keyName) {
         KeyboardStatusChangedEvent evt =
-                new KeyboardStatusChangedEvent(insertMode, keyboardLocked, keyName);
+                new KeyboardStatusChangedEvent(insertMode, isKeyboardLocked(), keyName);
         keyboardChangeListeners.forEach(l -> l.keyboardStatusChanged(evt));
     }
 
